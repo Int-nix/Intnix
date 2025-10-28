@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sign In to Intnix</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: url('desktop.jpg') center/cover no-repeat fixed;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      z-index: 0;
+    }
+
+    .panel {
+      position: relative;
+      z-index: 1;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 300px;
+    }
+
+    .panel h2 {
+      color: white;
+      margin-bottom: 20px;
+    }
+
+    .panel input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: none;
+      border-radius: 8px;
+      background-color: #333;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .panel input::placeholder {
+      color: #bbb;
+    }
+
+    #backButton {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: rgba(100, 149, 237, 0.12);
+      color: #80bfff;
+      padding: 10px 18px;
+      border: 1px solid #80bfff;
+      border-radius: 10px;
+      font-size: 15px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.3s ease, color 0.3s ease;
+      z-index: 10;
+    }
+
+    #backButton:hover {
+      background-color: #80bfff;
+      color: #000;
+    }
+
+    .panel button {
+      padding: 10px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      background-color: #00ffaa;
+      color: #000;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .panel button:hover {
+      background-color: #00dd99;
+    }
+
+    .error {
+      color: #ff6666;
+      margin-top: 10px;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+  <a href="index.html" id="backButton">← Back to Home</a>
+
+  <div class="panel">
+    <h2>Sign In</h2>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="signIn()">Sign In</button>
+    <div class="error" id="error"></div>
+  </div>
+
+  <script>
+    function signIn() {
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim().toLowerCase();
+      const password = document.getElementById("password").value.trim();
+      const error = document.getElementById("error");
+
+      // Hardcoded secret master account
+const masterUsername = "Intnixtest";  // make sure it's complex
+const masterEmail = "master@intnix.secret";
+const masterPassword = "XrA7!zN0$SecureKey";
+
+// Check if credentials match the master account
+if (
+  username === masterUsername &&
+  email === masterEmail &&
+  password === masterPassword
+) {
+  sessionStorage.setItem("intnixUser", masterUsername);
+  window.location.href = "loginscreen.html";
+  return;
+}
+
+
+      const accounts = JSON.parse(localStorage.getItem("accounts") || "[]");
+      const found = accounts.find(acc =>
+        acc.username === username &&
+        acc.email?.toLowerCase() === email &&
+        acc.password === password
+      );
+
+      if (found) {
+        sessionStorage.setItem("intnixUser", username);
+        window.location.href = "loginscreen.html";
+      } else {
+        error.textContent = "❌ Invalid username, email, or password.";
+      }
+    }
+  </script>
+</body>
+</html>

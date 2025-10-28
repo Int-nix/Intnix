@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>File Manager</title>
+  <style>
+  body {
+    margin: 0;
+    display: flex;
+    height: 100vh;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f8f9fb;
+    color: #333;
+  }
+
+  .sidebar {
+    width: 240px;
+    background: #ffffff;
+    border-right: 1px solid #e0e0e0;
+    padding: 20px 10px;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.03);
+  }
+
+  .sidebar div {
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar div:hover {
+    background: #f0f0f0;
+  }
+
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .breadcrumbs {
+    background: #ffffff;
+    padding: 12px 20px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE 10+ */
+  }
+
+  .breadcrumbs::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+
+  .breadcrumbs span {
+    white-space: nowrap;
+    cursor: pointer;
+    color: #0077ff;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+
+  .breadcrumbs span:hover {
+    text-decoration: underline;
+  }
+
+
+  .content {
+    flex: 1;
+    padding: 24px;
+    display: grid;
+    gap: 24px;
+    align-content: start;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    overflow-y: auto;
+  }
+
+  .item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px 12px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  .icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .item-label {
+    font-size: 13px;
+    color: #555;
+    margin-top: 6px;
+    word-break: break-word;
+  }
+
+  #contextMenu {
+    position: absolute;
+    display: none;
+    background: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    overflow: hidden;
+    z-index: 9999;
+  }
+
+  #contextMenu div {
+    padding: 10px 16px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  #contextMenu div:hover {
+    background-color: #f4f4f4;
+  }
+
+  .refresh-button {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: linear-gradient(145deg, #007aff, #0062d1);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .refresh-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 122, 255, 0.3);
+  }
+
+  .refresh-button .icon {
+    display: inline-block;
+    font-size: 16px;
+    animation: spin 1s linear infinite paused;
+  }
+
+  .refresh-button:active .icon {
+    animation-play-state: running;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+
+  </style>
+</head>
+<div id="contextMenu" style="
+  position: absolute;
+  display: none;
+  background: white;
+  border: 1px solid #ccc;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+  border-radius: 5px;
+  font-family: sans-serif;
+  z-index: 9999;
+">
+<div data-command='makefilegui'>📁 New Folder</div>
+<div data-command='makefilegui'>📁 New File</div>
+<div data-command='delete $target'>🗑️ Delete</div>
+
+<div data-command='cd $target'>📂 Open Folder</div>
+<div data-command='launch $target'>📂launch app</div>
+<div data-command='copy $target'>📋 Copy</div>
+<div data-command='copypaste'>📋 Paste</div>
+
+
+</div>
+<body>
+  <div class="sidebar" id="sidebar"></div>
+  <div class="main">
+    <div class="refresh-button" id="refreshBtn" title="Refresh">
+      <span class="icon"></span>
+      Refresh
+    </div>
+
+
+    <div class="breadcrumbs" id="breadcrumbs"></div>
+    <div class="content" id="contentArea"></div>
+  </div>
+  <div id="nameInputModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+   background:#fff; border:1px solid #aaa; padding:20px; z-index:10000; box-shadow:0 0 10px rgba(0,0,0,0.2); border-radius:8px;">
+    <div style="margin-bottom:10px;">Enter a name:</div>
+    <input type="text" id="nameInputField" style="width:100%; padding:8px; font-size:14px;" />
+    <div style="margin-top:10px; text-align:right;">
+      <button id="nameInputCancel">Cancel</button>
+      <button id="nameInputConfirm">OK</button>
+    </div>
+  </div>
+
+  <script>
+  function normalizePath(path) {
+    return path.replace(/\/+/g, "/");
+  }
+
+
+  let currentPath = normalizePath("/");
+  let selectedItem = null;
+
+  window.onload = () => {
+    parent.postMessage({ type: "request-fs" }, "*");
+  };
+
+  window.addEventListener("message", (e) => {
+    if (e.data.type === "fs-data") {
+      renderFinder(e.data.fs, e.data.appMeta, normalizePath(e.data.path || "/"));
+    }
+  });
+
+  function moveAndGoTo(name, fromPath, toPath, isFolder) {
+    fromPath = normalizePath(fromPath);
+    toPath = normalizePath(toPath);
+
+    const commandName = isFolder ? "movedir" : "movefile";
+    const fullFrom = normalizePath(fromPath === "/" ? `/${name}` : `${fromPath}/${name}`);
+    const fullTo = normalizePath(toPath);
+
+    parent.postMessage({
+      type: "terminal-input",
+      command: `${commandName} "${fullFrom}" to ${fullTo}`
+    }, "*");
+
+    setTimeout(() => {
+      parent.postMessage({ type: "request-fs", path: fullTo }, "*");
+    }, 150);
+  }
+
+  function findAppMeta(appMeta, filePath) {
+    if (appMeta[filePath]) return appMeta[filePath];
+    const fileName = filePath.split("/").pop();
+    for (const path in appMeta) {
+      if (path.endsWith("/" + fileName)) {
+        return appMeta[path];
+      }
+    }
+    return null;
+  }
+
+  function renderFinder(fs, appMeta, path) {
+    currentPath = normalizePath(path);
+    selectedItem = null;
+
+    const sidebar = document.getElementById("sidebar");
+    const breadcrumbs = document.getElementById("breadcrumbs");
+    const content = document.getElementById("contentArea");
+
+    sidebar.innerHTML = "<strong>This PC</strong>";
+    (fs["/"] || []).forEach(name => {
+    const fullPath = normalizePath("/" + name);
+    const isFolder = Array.isArray(fs[fullPath]);
+    if (!isFolder) return; // Skip files
+
+    const div = document.createElement("div");
+    div.textContent = name;
+    div.onclick = () => renderFinder(fs, appMeta, fullPath);
+    sidebar.appendChild(div);
+  });
+
+
+  breadcrumbs.innerHTML = "";
+
+const parts = path.split("/").filter(Boolean);
+
+// Root crumb
+const root = document.createElement("span");
+root.textContent = "This PC";
+root.style.cursor = "pointer";
+root.style.color = "#0077ff";
+root.onclick = () => renderFinder(fs, appMeta, "/");
+
+root.ondragover = (e) => e.preventDefault();
+root.ondrop = (e) => {
+  e.preventDefault();
+  const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
+  const draggedFullPath = normalizePath(`${dragged.path}/${dragged.name}`);
+  const isDraggedFolder = Array.isArray(fs[draggedFullPath]);
+  moveAndGoTo(dragged.name, dragged.path, "/", isDraggedFolder);
+};
+
+breadcrumbs.appendChild(root);
+
+// Dynamic crumbs
+parts.forEach((part, index) => {
+  let fullPathSoFar = "/" + parts.slice(0, index + 1).join("/");
+
+  // Separator
+  const sep = document.createElement("span");
+  sep.textContent = " / ";
+  sep.style.userSelect = "none";
+  breadcrumbs.appendChild(sep);
+
+  const crumb = document.createElement("span");
+  crumb.textContent = part.length > 16 ? part.slice(0, 12) + "…" : part;
+  crumb.title = part;
+  crumb.style.cursor = "pointer";
+  crumb.style.color = "#0077ff";
+
+  crumb.onclick = () => renderFinder(fs, appMeta, fullPathSoFar);
+
+  crumb.ondragover = (e) => e.preventDefault();
+  crumb.ondrop = (e) => {
+    e.preventDefault();
+    const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
+    const draggedFullPath = normalizePath(`${dragged.path}/${dragged.name}`);
+    const isDraggedFolder = Array.isArray(fs[draggedFullPath]);
+    moveAndGoTo(dragged.name, dragged.path, fullPathSoFar, isDraggedFolder);
+  };
+
+  breadcrumbs.appendChild(crumb);
+});
+
+
+    content.innerHTML = "";
+    const items = fs[path] || [];
+
+    items.forEach(item => {
+      const fullPath = normalizePath(path === "/" ? `/${item}` : `${path}/${item}`);
+      const isFolder = Array.isArray(fs[fullPath]);
+      const meta = findAppMeta(appMeta, fullPath) || {};
+
+      const div = document.createElement("div");
+      div.className = "item";
+      div.draggable = true;
+
+      div.ondragstart = (e) => {
+        e.dataTransfer.setData("text/plain", JSON.stringify({ name: item, path }));
+      };
+      div.ondrop = (e) => {
+        e.preventDefault();
+        const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
+        const draggedFullPath = normalizePath(`${dragged.path}/${dragged.name}`);
+        const isDraggedFolder = Array.isArray(fs[draggedFullPath]);
+        moveAndGoTo(dragged.name, dragged.path, fullPath, isDraggedFolder);
+      };
+      div.ondragover = e => e.preventDefault();
+
+      div.onmouseenter = () => {
+        if (fullPath !== currentPath) {
+          selectedItem = {
+            name: item,
+            fullPath: fullPath,
+            isFolder: isFolder,
+            path: path,
+          };
+        }
+      };
+
+      div.oncontextmenu = (e) => {
+        e.preventDefault();
+        selectedItem = {
+          name: item,
+          fullPath: fullPath,
+          isFolder: isFolder,
+          path: path,
+        };
+        contextMenu.style.top = `${e.clientY}px`;
+        contextMenu.style.left = `${e.clientX}px`;
+        contextMenu.style.display = "block";
+      };
+
+      let iconHTML = "<div class='icon'>📄</div>";
+      if (meta.icon) {
+        iconHTML = `<img src="${meta.icon}" class="icon" style="width:48px;height:48px;margin-bottom:8px;">`;
+      } else if (isFolder) {
+        iconHTML = "<div class='icon'>📁</div>";
+      } else if (item.endsWith(".html")) {
+        iconHTML = "<div class='icon'>🌐</div>";
+      } else if (item.endsWith(".txt")) {
+        iconHTML = "<div class='icon'>📝</div>";
+      }
+
+      div.innerHTML = iconHTML + `<div class="item-label">${item}</div>`;
+
+      let clickTimeout = null;
+  div.onclick = () => {
+    selectedItem = {
+      name: item,
+      fullPath: fullPath,
+      isFolder: isFolder,
+      path: path,
+    };
+
+    // Handle single-click and wait briefly to distinguish from double-click
+    if (clickTimeout) {
+      clearTimeout(clickTimeout);
+      clickTimeout = null;
+    } else {
+      clickTimeout = setTimeout(() => {
+        clickTimeout = null;
+        if (isFolder) {
+          renderFinder(fs, appMeta, fullPath); // single click: open folder
+        }
+      }, 250);
+    }
+  };
+
+  div.ondblclick = () => {
+    if (clickTimeout) {
+      clearTimeout(clickTimeout);
+      clickTimeout = null;
+    }
+
+    selectedItem = {
+      name: item,
+      fullPath: fullPath,
+      isFolder: isFolder,
+      path: path,
+    };
+
+    // Smart double-click handling
+    if (meta.doubleClickCommand) {
+      sendCommand(meta.doubleClickCommand.replace(/\$path/g, fullPath));
+      return;
+    }
+
+    if (isFolder) {
+      renderFinder(fs, appMeta, fullPath);
+      return;
+    }
+
+    const ext = item.includes(".") ? "." + item.split(".").pop() : "";
+    if (doubleClickCommands[ext]) {
+      doubleClickCommands[ext](fullPath);
+    } else {
+      doubleClickCommands.default(fullPath);
+    }
+  };
+
+  function sendCommand(cmd) {
+    parent.postMessage({ type: "terminal-input", command: cmd }, "*");
+  }
+
+
+  div.ondblclick = () => {
+    selectedItem = {
+      name: item,
+      fullPath: fullPath,
+      isFolder: isFolder,
+      path: path,
+    };
+
+    if (isFolder) {
+      renderFinder(fs, appMeta, fullPath);
+      return;
+    }
+
+    const ext = item.includes(".") ? item.slice(item.lastIndexOf(".")).toLowerCase() : "";
+    let command = "";
+
+    if (ext === ".html") {
+    command = `htmlnano $target`;
+  } else if (ext === ".txt") {
+    command = `launchtext $target`;
+  } else if (ext === ".app") {
+    command = `launch $target`;
+  }
+else {
+      alert(`No handler for file type: ${ext || "unknown"}`);
+      return;
+    }
+
+    // Replace $target with fullPath
+    command = command.replace(/\$target/g, fullPath);
+
+    parent.postMessage({
+      type: "terminal-input",
+      command: command
+    }, "*");
+  };
+
+  content.appendChild(div);
+
+    });
+  }
+
+  const contextMenu = document.getElementById("contextMenu");
+
+  document.addEventListener("contextmenu", (e) => {
+    if (!e.target.closest(".item")) {
+      selectedItem = null;
+      contextMenu.style.top = `${e.clientY}px`;
+      contextMenu.style.left = `${e.clientX}px`;
+      contextMenu.style.display = "block";
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener("click", () => {
+    contextMenu.style.display = "none";
+  });
+
+  document.querySelectorAll("#contextMenu div").forEach(option => {
+    option.addEventListener("click", () => {
+      const rawCommand = option.dataset.command;
+      if (!rawCommand) return;
+
+      let finalCommand = rawCommand;
+
+      if (rawCommand.includes("$target")) {
+        if (!selectedItem) {
+          alert("No item selected.");
+          return;
+        }
+        finalCommand = finalCommand.replace(/\$target/g, selectedItem.fullPath);
+      }
+
+      if (rawCommand.includes("$name")) {
+        const name = prompt("Enter name:");
+        if (!name || !name.trim()) return;
+        finalCommand = finalCommand.replace(/\$name/g, name.trim());
+      }
+
+      parent.postMessage({
+        type: "terminal-input",
+        command: finalCommand
+      }, "*");
+
+      setTimeout(() => {
+        if (selectedItem?.isFolder && selectedItem.fullPath === currentPath) {
+          const parentSegments = currentPath.split("/").filter(Boolean);
+          parentSegments.pop();
+          const parentPath = "/" + parentSegments.join("/");
+          parent.postMessage({ type: "request-fs", path: parentPath || "/" }, "*");
+        } else {
+          parent.postMessage({ type: "request-fs", path: currentPath }, "*");
+        }
+      }, 300);
+    });
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Delete") {
+      if (!selectedItem || selectedItem.fullPath === "/" || !selectedItem.fullPath.startsWith("/")) {
+        alert("⚠️ No valid file or folder selected.");
+        return;
+      }
+
+      const confirmDelete = confirm(`Delete "${selectedItem.name}"?`);
+      if (!confirmDelete) return;
+
+      const command = `delete "${selectedItem.fullPath}"`;
+      parent.postMessage({ type: "terminal-input", command }, "*");
+
+      setTimeout(() => {
+        const deletedFolder = selectedItem?.isFolder && selectedItem.fullPath === currentPath;
+        const refreshPath = deletedFolder
+          ? "/" + currentPath.split("/").filter(Boolean).slice(0, -1).join("/")
+          : currentPath;
+
+        parent.postMessage({ type: "request-fs", path: normalizePath(refreshPath || "/") }, "*");
+      }, 300);
+    }
+  });
+</script>
+
+
+
+</body>
+</html>

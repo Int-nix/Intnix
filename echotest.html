@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Echo Test App</title>
+  <style>
+    body {
+      background-color: #1e1e1e;
+      color: #00ff88;
+      font-family: monospace;
+      padding: 20px;
+    }
+    button {
+      background: #00ff88;
+      color: #1e1e1e;
+      border: none;
+      padding: 10px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🧪 Echo Tester</h2>
+  <button onclick="runCommand()">Send 'echo test'</button>
+
+  <script>
+    function runCommand() {
+      if (window.parent?.terminalAPI?.run) {
+        window.parent.terminalAPI.run("echo test");
+      } else {
+        alert("❌ terminalAPI not available.");
+      }
+    }
+  </script>
+</body>
+</html>

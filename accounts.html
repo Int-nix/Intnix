@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create Intnix Account</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: url('desktop.jpg') center/cover no-repeat fixed;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      z-index: 0;
+    }
+
+    .panel {
+      position: relative;
+      z-index: 1;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 300px;
+    }
+
+    .panel h2 {
+      color: white;
+      margin-bottom: 20px;
+    }
+
+    .panel input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: none;
+      border-radius: 8px;
+      background-color: #333;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .panel input::placeholder {
+      color: #bbb;
+    }
+
+    .panel button {
+      padding: 10px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      background-color: #00ffaa;
+      color: #000;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .panel button:hover {
+      background-color: #00dd99;
+    }
+
+    .success {
+      color: #88ff88;
+      margin-top: 10px;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+
+  <div class="panel">
+    <h2>Create Account</h2>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="email" id="email" placeholder="Email address" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="createAccount()">Create</button>
+    <div class="success" id="success"></div>
+  </div>
+
+  <script>
+
+async function createAccount() {
+  const username = document.getElementById("username").value.trim();
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const password = document.getElementById("password").value.trim();
+  const success = document.getElementById("success");
+
+  if (!username || !email || !password) {
+    success.textContent = "❌ Please fill out all fields.";
+    success.style.color = "#ff6666";
+    return;
+  }
+
+  try {
+    const response = await fetch("/licenses.csv");
+    const csvText = await response.text();
+    const lines = csvText.split("\n").slice(1); // skip header row
+
+    const match = lines.find(line => {
+      const [lineEmail, lineLicense] = line.split(",");
+      return lineEmail?.trim().toLowerCase() === email;
+    });
+
+    if (!match) {
+      success.textContent = "❌ No valid license found for this email.";
+      success.style.color = "#ff6666";
+      return;
+    }
+
+    // Proceed to save the account locally or remotely
+    const accounts = JSON.parse(localStorage.getItem("accounts") || "[]");
+    accounts.push({ username, email, password });
+    localStorage.setItem("accounts", JSON.stringify(accounts));
+
+    success.textContent = "✅ Account created!";
+    success.style.color = "#88ff88";
+
+    setTimeout(() => {
+      window.location.href = "loginscreen.html";
+    }, 1000);
+  } catch (err) {
+    success.textContent = "❌ Error checking license file.";
+    success.style.color = "#ff6666";
+  }
+}
+
+</script>
+
+
+
+</body>
+</html>

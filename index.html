@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+<link rel="icon" type="image/png" href="favicon.png">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+
+  <!-- Prevent browser caching -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
+  <title>Intnix – The First Browser Operating System</title>
+  <style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: url('quebec.jpeg') center/cover no-repeat fixed;
+    color: #e5e5e5;
+    line-height: 1.6;
+    backdrop-filter: blur(20px);
+  }
+  .top-nav {
+  position: sticky;
+  top: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(10px);
+  padding: 0.5rem 1rem;
+  z-index: 999;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.top-nav ul {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.top-nav a {
+  color: #a4b4e0;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.1em;
+  transition: color 0.3s ease;
+}
+
+h2 a:hover {
+  text-decoration: underline;
+  color: #66ffe6;
+}
+
+
+.top-nav a:hover {
+  color: #ffffff;
+}
+
+/* Optional: Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+
+  header {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(100px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 3rem 2rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+    border-radius: 0 0 20px 20px;
+    transition: all 0.3s ease;
+  }
+
+  header h1 {
+    font-size: 3em;
+    margin: 0;
+    color: black;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+    letter-spacing: 0.5px;
+  }
+
+  header p {
+    font-size: 1.25em;
+    color: black;
+    margin-top: 0.8em;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.4);
+  }
+
+
+  .cta-button {
+    margin-top: 1.5em;
+    padding: 1em 2em;
+    font-size: 1.1em;
+    background-color: #000;
+    color: #a4b4e0;
+    border: 2px solid;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .cta-button:hover {
+    background-color: #a4b4e0;
+    color: #000;
+  }
+
+  .auth-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .auth-button {
+    padding: 1em 2em;
+    font-size: 1.1em;
+    background-color: #111;
+    color: #black;
+    border: 0px solid;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    box-shadow: 0 0 8px rgba(0, 255, 204, 0.2);
+  }
+
+  .auth-button:hover {
+    background-color: #00ffaa;
+    color: #000;
+    box-shadow: 0 0 16px rgba(0, 255, 204, 0.4);
+  }
+
+  section {
+    padding: 4rem 2rem;
+    max-width: 1000px;
+    margin: auto;
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 2rem;
+  }
+
+  .feature-box {
+    background: rgba(15, 15, 15, 0.8);
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid #333;
+    box-shadow: 0 0 20px rgba(0, 255, 204, 0.05);
+    transition: transform 0.2s ease;
+  }
+
+  .feature-box:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 24px rgba(0, 255, 204, 0.15);
+  }
+
+  .feature-box h3 {
+    color: #a4b4e0;
+    margin-top: 0;
+    font-size: 1.4em;
+  }
+
+  .pricing {
+    text-align: center;
+  }
+
+  .pricing h2 {
+    color: #a4b4e0;
+    font-size: 2em;
+  }
+
+  .price-tier {
+    background: rgba(20, 20, 20, 0.95);
+    margin: 1.5rem auto;
+    padding: 2rem;
+    max-width: 420px;
+    border: 1px solid #444;
+    border-radius: 14px;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.1);
+    transition: transform 0.2s ease;
+  }
+
+  .price-tier-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .price-tier-link:hover .price-tier {
+    transform: scale(1.03);
+    box-shadow: 0 0 16px rgba(0, 255, 204, 0.2);
+  }
+
+  .price-tier h3 {
+    margin-bottom: 0.5em;
+    color: #00ffaa;
+    font-size: 1.3em;
+  }
+
+  .price-tier p {
+    margin: 0.3em 0;
+  }
+
+  .gallery {
+    padding: 4rem 2rem;
+    max-width: 1100px;
+    margin: auto;
+  }
+
+  .gallery-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    margin-top: 2rem;
+  }
+
+  .gallery-grid img {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid #333;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.15);
+    transition: transform 0.3s ease;
+  }
+
+  .gallery-grid img:hover {
+    transform: scale(1.75);
+  }
+
+  footer {
+    background: #111;
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.9em;
+    color: #777;
+    border-top: 1px solid #222;
+  }
+
+  a {
+    color: #a4b4e0;
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  </style>
+</head>
+
+
+
+<body>
+
+
+
+  <header>
+    <nav class="top-nav">
+  <ul>
+    <li><a href="#why">About</a></li>
+    <li><a href="#gallery">Gallery</a></li>
+    <li><a href="#commands">Commands</a></li>
+    <li><a href="#creators">Creators</a></li>
+      <li><a href="#privacy">Privacy Policy</a></li>
+      <li><a href="#terms">Terms</a></li>
+
+  </ul>
+</nav>
+
+    <h1>Intnix</h1>
+    <p>The Future of Operating Systems — All in Your Browser</p>
+
+
+  </header>
+
+  <div style="margin-top: 2rem; max-width: 1000px; margin-left: auto; margin-right: auto; position: relative;">
+    <iframe id="login-frame" src="loginscreen.html" style="
+      width: 100%;
+      height: 800px;
+      border: none;
+      border-radius: 16px;
+      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    " onmouseover="this.style.transform='scale(1.01)'; this.style.boxShadow='0 0 30px rgba(0,255,204,0.25)'"
+       onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 20px rgba(0,255,204,0.15)'">
+    </iframe>
+
+    <button id="fullscreen-btn" onclick="toggleFullscreen()" style="
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 10px 18px;
+      font-size: 1rem;
+      font-weight: bold;
+      background: rgba(0, 255, 204, 0.25);
+      color: white;
+      border: 2px solid rgba(0, 255, 204, 0.4);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.2s ease;
+    " onmouseover="this.style.background='rgba(0,255,204,0.4)'"
+       onmouseout="this.style.background='rgba(0,255,204,0.25)'">
+      ⛶ Fullscreen
+    </button>
+  </div>
+
+  <script>
+    const btn = document.getElementById('fullscreen-btn');
+    const iframe = document.getElementById('login-frame');
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        iframe.requestFullscreen().then(() => {
+          btn.innerHTML = "❌ Exit Fullscreen";
+        }).catch(err => {
+          alert("Fullscreen failed: " + err.message);
+        });
+      } else {
+        document.exitFullscreen().then(() => {
+          btn.innerHTML = "⛶ Fullscreen";
+        });
+      }
+    }
+
+    // Reset button text when exiting fullscreen another way
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        btn.innerHTML = "⛶ Fullscreen";
+      }
+    });
+  </script>
+
+
+
+  <div class="auth-buttons">
+      <a href="https://www.youtube.com/@Int-nix" class="auth-button">Youtube</a>
+  </div>
+
+
+  <section>
+    <h2 style="text-align:center;">Why Intnix?</h2>
+    <div class="features">
+      <div class="feature-box">
+        <h3>Web-Based OS</h3>
+        <p>Launch powerful apps, edit files, and run terminals – all from your browser. No install required.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Creator-First</h3>
+        <p>Designed for developers, writers, artists, and creators. Build, test, and publish directly from your OS.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Open Ecosystem</h3>
+        <p>Intnix supports your own apps and packages with zero gatekeeping. It's your system.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="gallery" class="gallery">
+    <h2 style="text-align:center;">Gallery</h2>
+    <p style="text-align:center; color:#ccc;">Take a closer look at the Intnix experience.</p>
+    <div class="gallery-grid">
+      <img src="market.png" alt="Intnix Browser" />
+      <img src="market1.png" alt="Intnix Terminal" />
+      <img src="market3.png" alt="Intnix Desktop" />
+      <img src="market2.png" alt="Intnix App Store" />
+      <img src="market5.png" alt="Intnix Browser2" />
+      <img src="market 6.png" alt="Intnix Terminal2" />
+      <img src="market7.png" alt="Intnix Desktop2" />
+      <img src="market8.png" alt="Intnix App Store2" />
+    </div>
+  </section>
+
+
+  <section id="why">
+    <h2 style="text-align:center;">
+    <a href="about.html" style="color: #00008B; text-decoration: none;">
+      Click Here For More About Intnix
+    </a>
+  </h2>
+
+    <div class="text-columns">
+      <div class="text-box">
+        <h3>⚙️ Key Features</h3>
+        <h4> The WebKernel</4>
+        <p>The WebKernel is the beating heart of Intnix. Think of it as a mix between Linux’s terminal and a real-time OS kernel. It controls everything from launching apps and interpreting commands to drawing windows and handling startup sequences.
+
+Built-in command parser with fuzzy-matching and retry logic
+
+Handles both terminal and GUI requests
+
+Can launch GUI apps, HTML tools, and file previews
+
+Acts as the logic controller for every part of the system</p>
+      </div>
+      <div class="text-box">
+        <h3>🖥️ Full Desktop Environment</h3>
+        <p>Intnix emulates a full windowed desktop environment, complete with:
+
+A dock
+
+Multi-window support
+
+Drag, minimize, and maximize
+
+Built-in file explorer ("Finder"-style)</p>
+      </div>
+      <div class="text-box">
+        <h3>🗂️ File System</h3>
+        <p>Intnix has a fully working, persistent file system stored in your browser's localStorage. Each user has their own directory tree.
+
+mkdir, touch, nano, movefile, delete, chmod, and more
+
+Each file has associated content, type, icon, and metadata
+
+Admins can view or reset other users' file systems
+
+Files are linked to apps, scripts, GUIs, and packages</p>
+      </div>
+      <div class="text-box">
+        <h3>👤 Multi-User System</h3>
+        <p>Intnix supports:
+
+Multiple user accounts
+
+Password protection
+
+Per-user file systems
+
+Admin-only commands
+
+Profile icons and sign-in screen
+
+Users can create, sign into, delete, or export their accounts — and even load them on another machine using the import user command.</p>
+      </div>
+      <div class="text-box">
+        <h3>🧠 Terminal Power</h3>
+        <p>The Intnix Terminal supports:
+
+175+ built-in commands
+
+Scripting (loop, o++, endloop, run, alias, launchhtml, string)
+
+Real-time execution
+
+Variable binding and string evaluation
+
+Debug mode and visual output panels</p>
+      </div>
+
+
+
+    </div>
+  </section>
+
+  <section id="commands" class="gallery">
+    <h2 style="text-align:center;">Intnix Commands</h2>
+    <p style="text-align:center; color:#ccc;">Take a closer look at the Intnix experience.</p>
+    <div class="gallery-grid">
+      <img src="commands1.png" alt="Intnix Browser" />
+      <img src="commands2.png" alt="Intnix Terminal" />
+      <img src="commands3.png" alt="Intnix Desktop" />
+      <img src="commands4.png" alt="Intnix App Store" />
+    </div>
+  </section>
+
+
+  <section id="privacy">
+  <h2 style="text-align:center;">Privacy Policy</h2>
+  <div class="features">
+    <div class="feature-box">
+      <h3>Local-First Storage</h3>
+      <p>All your files, settings, and apps are stored directly in your browser. Intnix does not send your data to any external servers.</p>
+    </div>
+    <div class="feature-box">
+      <h3>No Personal Data Collected</h3>
+      <p>We do not collect personal information like your name or email unless you explicitly provide it through forms (e.g., waitlists or support).</p>
+    </div>
+    <div class="feature-box">
+      <h3>Cookies & Analytics</h3>
+      <p>Third-party tools like Google AdSense may use cookies to serve personalized ads. You can manage cookie preferences through your browser settings.</p>
+    </div>
+    <div class="feature-box">
+      <h3>Security & Control</h3>
+      <p>Your data stays under your control. You can clear it anytime by wiping your browser storage or exporting and deleting your account manually.</p>
+    </div>
+    <div class="feature-box">
+      <h3>Third-Party Services</h3>
+      <p>Intnix may use services like Google AdSense and EmailJS. These services have their own privacy policies and may collect minimal data to function properly.</p>
+    </div>
+    <div class="feature-box">
+      <h3>Contact & Ownership</h3>
+      <p>For questions or privacy concerns, reach out to Intnix at intnixbusiness@gmail.com. Intnix is proudly built in Toronto, Canada.</p>
+    </div>
+  </div>
+</section>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3263894572445801"
+     crossorigin="anonymous"></script>
+<!-- index ads -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-3263894572445801"
+     data-ad-slot="4766697784"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+<!-- Modal Background -->
+
+
+  <section id="terms">
+    <h2 style="text-align:center;">Terms of Service</h2>
+    <div class="features">
+      <div class="feature-box">
+        <h3>Acceptance of Terms</h3>
+        <p>By using Intnix, you agree to these terms. If you disagree, please do not use the platform.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Service Description</h3>
+        <p>Intnix is a web-based operating system offering terminal access, file systems, multi-user support, and custom app environments — all in your browser.</p>
+      </div>
+      <div class="feature-box">
+        <h3>User Responsibilities</h3>
+        <p>You are responsible for the content you create or store. Do not use Intnix to upload illegal, offensive, or harmful materials, or to exploit the system.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Local Data Handling</h3>
+        <p>Your files and user data are stored in your browser only. Clearing your browser may result in permanent data loss unless you export it first.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Ownership & Licensing</h3>
+        <p>All core code, design, and branding are the intellectual property of the Intnix team unless explicitly licensed for reuse or contribution.</p>
+      </div>
+      <div class="feature-box">
+        <h3>No Warranty</h3>
+        <p>Intnix is provided “as is” with no guarantee of uptime or compatibility. You use it at your own risk.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Limitation of Liability</h3>
+        <p>We are not liable for data loss, performance issues, or damages resulting from the use or misuse of Intnix.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Third-Party Services</h3>
+        <p>Services like Google AdSense or EmailJS may be used. These tools follow their own privacy and usage terms.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Updates to Terms</h3>
+        <p>Terms of Service may be updated at any time. The latest version will always be available on the official site.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Contact</h3>
+        <p>For legal or support inquiries, contact Intnix at intnixbusiness@gmail.com — based in Toronto, Canada.</p>
+      </div>
+    </div>
+  </section>
+
+
+
+  <section id="creators" style="text-align:center;">
+    <h2>Built by Creators, for Creators</h2>
+    <p>Intnix is more than software — it's a movement to take back computing from bloated, locked-down systems.</p>
+  </section>
+
+  <footer>
+    &copy; 2025 Intnix. All rights reserved. | <a href="Intnixbussiness.com">Contact Us</a>
+  </footer>
+<script>
+  // Init EmailJS
+  (function(){
+    emailjs.init("MmZlYz0O6n7gK7L3u"); // replace with your actual public key
+  })();
+
+  // Open modal
+  function openWaitlistModal() {
+    document.getElementById("waitlistModal").style.display = "flex";
+  }
+
+  // Close modal
+  function closeModal() {
+    document.getElementById("waitlistModal").style.display = "none";
+  }
+
+  // Handle form submit
+  document.getElementById("waitlistForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    emailjs.sendForm("service_vzw2k04", "template_9edrgsi", this)
+      .then(function(response) {
+        alert("Thanks for joining the waitlist!");
+        closeModal();
+      }, function(error) {
+        alert("Something went wrong. Please try again.");
+        console.error(error);
+      });
+  });
+</script>
+
+
+</body>
+</html>

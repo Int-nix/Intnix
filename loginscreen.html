@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OOS Login</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: url('desktop.jpg') center/cover no-repeat fixed;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      z-index: 0;
+    }
+
+    #backButton {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background-color: rgba(100, 149, 237, 0.12); /* light cornflower blue tint */
+    color: #80bfff;
+    padding: 10px 18px;
+    border: 1px solid #80bfff;
+    border-radius: 10px;
+    font-size: 15px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background 0.3s ease, color 0.3s ease;
+    z-index: 10;
+  }
+
+  #backButton:hover {
+    background-color: #80bfff;
+    color: #000;
+  }
+
+
+
+
+    .login-panel {
+      position: relative;
+      z-index: 1;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 300px;
+    }
+
+    .login-panel h2 {
+      color: white;
+      margin-bottom: 20px;
+    }
+
+    .user-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .user {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 12px 16px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .user:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .user img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .user span {
+      color: white;
+      font-size: 16px;
+    }
+
+    .datetime {
+      position: absolute;
+      top: 40px;
+      width: 100%;
+      text-align: center;
+      color: white;
+      font-size: 24px;
+      z-index: 2;
+      text-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    .password-box {
+      display: none;
+      margin-top: 20px;
+      width: 100%;
+    }
+
+    .password-box input {
+      padding: 10px;
+      width: 93%;
+      border-radius: 8px;
+      border: none;
+      background-color: #444;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .password-box input:focus {
+      outline: none;
+    }
+
+    .password-box button {
+      margin-top: 10px;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background-color: #A9A9A9;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .password-box button:hover {
+      background-color: #D3D3D3;
+    }
+    .create-user-btn {
+    background-color: #2c2c2c;
+    color: #ffffff;
+    font-size: 16px;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease-in-out;
+    margin-top: 30px; /* 👈 THIS moves it down */
+  }
+
+
+    .create-user-btn:hover {
+      background-color: #444;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    .create-user-btn:active {
+      background-color: #555;
+      transform: translateY(1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+
+    #leftAdBox {
+      position: absolute;
+      bottom: 0%;
+      left: 20px;
+      width: 200px;
+      height: 120px;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(0, 255, 204, 0.3);
+      border-radius: 16px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 16px rgba(0, 255, 204, 0.15);
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #00ffcc;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 14px;
+      text-align: center;
+      padding: 12px;
+      transition: all 0.3s ease;
+    }
+
+    #leftAdBox:hover {
+      background: rgba(0, 0, 0, 0.6);
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+    }
+
+
+
+        #rightAdBox {
+          position: absolute;
+          bottom: 0%;
+          right: 20px;
+          width: 200px;
+          height: 120px;
+          background: rgba(0, 0, 0, 0.45);
+          border: 1px solid rgba(0, 255, 204, 0.3);
+          border-radius: 16px;
+          backdrop-filter: blur(8px);
+          box-shadow: 0 0 16px rgba(0, 255, 204, 0.15);
+          z-index: 3;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #00ffcc;
+          font-family: 'Segoe UI', sans-serif;
+          font-size: 14px;
+          text-align: center;
+          padding: 12px;
+          transition: all 0.3s ease;
+        }
+
+        #rightAdBox:hover {
+          background: rgba(0, 0, 0, 0.6);
+          box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+        }
+
+        .terms-check {
+  color: white;
+  font-size: 14px;
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-family: 'Segoe UI', sans-serif;
+  user-select: none;
+}
+
+.terms-check input[type="checkbox"] {
+  transform: scale(1.2);
+  cursor: pointer;
+  accent-color: #00ffcc;
+}
+
+.terms-check a {
+  color: #00ffcc;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.terms-check a:hover {
+  color: #66ffe6;
+}
+
+#userList {
+  display: none;
+}
+
+#createUserBtn {
+  display: none;
+}
+
+  </style>
+</head>
+
+
+
+<!-- Place just before </body> -->
+<div id="customFooterAd" style="
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0px; /* 👈 Adjust height here */
+  background: rgba(0, 255, 204, 0.05);
+  border-top: 0px solid #00ffcc;
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  text-align: center;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00ffcc;
+  box-shadow: 0 -2px 12px rgba(0, 255, 204, 0.15);
+  padding: 0 12px;
+">
+  <!-- AdSense block or fallback promo -->
+  <!-- Swap this content with real ad code -->
+  <div style="width: 100%; max-width: 728px;">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <ins class="adsbygoogle"
+         style="display:block; width:100%; height:90px;"
+         data-ad-client="ca-pub-XXXXXXXXXXXX"
+         data-ad-slot="YYYYYYYYYY"
+         data-ad-format="horizontal"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </div>
+</div>
+
+
+<body>
+  <div class="overlay"></div>
+
+  <div class="datetime" id="datetime"></div>
+
+
+
+
+  <div class="login-panel">
+    <h2>Sign In</h2>
+
+    <label class="terms-check">
+      <input type="checkbox" id="termsCheckbox" />
+      I have read and accept the <a href="terms.html" target="_blank">Terms of Service</a> and <a href="privacy.html" target="_blank">Privacy Policy</a>
+    for use of Intnix</label>
+
+    <div class="user-list" id="userList"></div>
+    <button class="create-user-btn" id="createUserBtn" onclick="createAndLoginUser()">➕ Create User</button>
+
+
+
+
+
+
+    <div class="password-box" id="passwordBox">
+      <input type="password" id="passwordInput" placeholder="Enter password" />
+      <button id="signInBtn">Sign In</button>
+    </div>
+  </div>
+
+
+  <script>
+
+      let selectedUser = null;
+
+      const renderUsers = () => {
+      const userListEl = document.getElementById('userList');
+      userListEl.innerHTML = ''; // Clear any old content
+
+      const rawUserFS = localStorage.getItem("userFileSystems");
+      const allUsers = JSON.parse(rawUserFS || "{}");
+      const userIcons = JSON.parse(localStorage.getItem("userIcons") || "{}");
+
+      const users = Object.keys(allUsers);
+
+      if (users.length === 0) {
+        userListEl.innerHTML = '<p style="color:white">No users found.</p>';
+        return;
+      }
+
+      users.forEach(user => {
+        if (!user || user === "null") return; // Skip null or empty users
+
+        const div = document.createElement('div');
+        div.className = 'user';
+
+        const avatar = document.createElement('img');
+        avatar.src = userIcons[user] || 'intnixlogogood.jpg';
+
+        const label = document.createElement('span');
+        label.textContent = user;
+
+        div.appendChild(avatar);
+        div.appendChild(label);
+        div.onclick = () => selectUser(user);
+
+        userListEl.appendChild(div);
+      });
+    };
+
+
+      const selectUser = (user) => {
+        selectedUser = user;
+        const passwords = JSON.parse(localStorage.getItem("userPasswords") || "{}");
+        const passwordBox = document.getElementById("passwordBox");
+        const passwordInput = document.getElementById("passwordInput");
+
+        if (passwords[user]) {
+          passwordBox.style.display = "block";
+          passwordInput.value = "";
+          passwordInput.focus();
+        } else {
+          signIn(user);
+        }
+      };
+
+      const submitPassword = () => {
+        const passwords = JSON.parse(localStorage.getItem("userPasswords") || "{}");
+        const enteredPassword = document.getElementById("passwordInput").value;
+
+        if (enteredPassword === passwords[selectedUser]) {
+          signIn(selectedUser);
+        } else {
+          alert("❌ Incorrect password");
+          document.getElementById("passwordInput").value = "";
+        }
+      };
+
+      const signIn = (user) => {
+        localStorage.setItem("currentUser", user);
+
+        const bridgeCommands = [
+          'runbridge',
+          'desktop',
+
+          'clear',
+          'newline',
+
+
+        ];
+
+        localStorage.setItem("runbridge", JSON.stringify(bridgeCommands));
+
+        window.location.href = "Terminal.html";
+
+      };
+
+      const updateDateTime = () => {
+        const now = new Date();
+        const date = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+        const time = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        document.getElementById("datetime").innerHTML = `${time}<br><span style="font-size:16px; opacity: 0.8">${date}</span>`;
+      };
+
+      window.onload = () => {
+        renderUsers();
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        // Submit password when Enter is pressed
+        document.getElementById("passwordInput").addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            submitPassword();
+          }
+        });
+
+        // Submit password when button is clicked
+        document.getElementById("signInBtn").addEventListener("click", submitPassword);
+      };
+
+      function createAndLoginUser() {
+        const username = prompt("Enter a username:");
+        if (!username || !username.trim()) {
+          alert("❌ Username required.");
+
+          // 💥 Cleanup: Remove accidental 'null' or empty user entries
+          const rawFS = localStorage.getItem("userFileSystems");
+          const userFS = JSON.parse(rawFS || "{}");
+
+          if (userFS.null || userFS[""]) {
+            delete userFS.null;
+            delete userFS[""];
+            localStorage.setItem("userFileSystems", JSON.stringify(userFS));
+          }
+
+          return;
+        }
+
+        const trimmed = username.trim();
+
+        const bridgeCommands = [
+          "runbridge",
+          `sudo user ${trimmed}`,
+          `signin ${trimmed}`,
+          'desktop',
+
+          'clear',
+          'newline',
+
+
+        ];
+
+        localStorage.setItem("runbridge", JSON.stringify(bridgeCommands));
+
+        window.location.href = "Terminal.html";
+      }
+
+      setTimeout(() => {
+        const btn = document.getElementById("close-login-ad");
+        if (btn) btn.style.display = "block";
+      }, 15000);
+
+      // Handle showing/hiding user list based on checkbox
+      document.getElementById("termsCheckbox").addEventListener("change", function () {
+        const userListEl = document.getElementById("userList");
+        const createUserBtn = document.getElementById("createUserBtn");
+
+        if (this.checked) {
+          renderUsers(); // Populate the user list
+          userListEl.style.display = "flex";
+          createUserBtn.style.display = "inline-block";
+        } else {
+          userListEl.innerHTML = "";
+          userListEl.style.display = "none";
+          createUserBtn.style.display = "none";
+        }
+      });
+
+
+      // Hide ads initially
+      document.getElementById("leftAdBox").style.display = "none";
+      document.getElementById("rightAdBox").style.display = "none";
+
+      // Show after 30 seconds
+      setTimeout(() => {
+        document.getElementById("leftAdBox").style.display = "flex";
+        document.getElementById("rightAdBox").style.display = "flex";
+      }, 15000);
+
+
+  </script>
+</body>
+</html>

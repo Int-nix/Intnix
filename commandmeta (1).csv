@@ -1,0 +1,147 @@
+command,description,version,author
+advertisement,displays advertisement,1,Owen
+aerodock,shows the aerodock,1,Owen
+amend,Adds a file into a specified folder.,1,Owen
+amend start,Add apps to startup.,1,Owen
+amendapp,Saves an installed app as an .app file in a folder.,1,Owen
+amendbridge,Add command to bridge.,1,Owen
+amendlivebridge,Set single live command.,1,Owen
+amendstart,add an app or command to the sgtartup,1,Owen
+anim,open animation program,1,Owen
+appdownload,Opens the appstore,1,Owen
+applauncher,Open the app  launcher,1,Owen
+assign,Assign a file a new icon.,1,Owen
+back,Goes back a directory.,1,Owen
+bottomdock,show the botoom dock custom dock,1,Owen
+bridgestatus,List bridge commands.,1,Owen
+bubbledock,show the bubble dock,1,Owen
+calc,Evaluates and prints a math expression.,1,Owen
+cascade,Cascade windows.,1,Owen
+cat,Displays contents of a file,1,Owen
+cat file.txt,Displays content of .txt files in terminal.,1,Owen
+cd,Navigates to the specified folder.,1,Owen
+checkdata,Checks metadata of .oos file.,1,Owen
+chmod,Lock or unlock folders.,1,Owen
+chooseback,opens background selection gui,1,Owen
+clear,Clears the terminal screen.,1,Owen
+clearbridge,Clear all bridge commands.,1,Owen
+clearrec,Clears recent app history.,1,Owen
+clearrecents,Clear recents.,1,Owen
+colordir,Changes directory color.,1,Owen
+copy,Can copy a file or folder.,1,Owen
+copypaste,Paste what you have copied.,1,Owen
+cut,Cut a file or folder.,1,Owen
+date,Shows the current date and time.,1,Owen
+debug,Debug Console window,1,Owen
+definelang,Defines what o++ is.,1,Owen
+delete,Delete file or folder by path.,1,Owen
+deleteapp,Removes an app from the app registry.,1,Owen
+deleteaptregistry,Delete all apt apps.,1,Owen
+deletedir,Delete a folder.,1,Owen
+deletepkg,delete selected packagw,1,Owen
+deletestart,Delete app from startup.,1,Owen
+deleteuser,Deletes that user.,1,Owen
+desktop,Open desktop.,1,Owen
+dock,"left, right, bottom different than aerodock",1,Owen
+dockicon,set dock size,1,Owen
+dockmenu,show dock selection menu,1,Owen
+dockrefresh,refresh dock without reloading page,1,Owen
+donut,Spinning Colorful donut,1,Owen
+downloadpkg,Download package manager JSON.,1,Owen
+echo,Prints the given text to the terminal.,1,Owen
+endloop,end a loop,1,Owen
+exitaccess,Exits admin access mode.,1,Owen
+exitfullscreen,exit full screen,1,Owen
+fetchstring,Fetch item from string.,1,Owen
+find,Search file system.,1,Owen
+finder,File management and explorer.,1,Owen
+fullscreen,Fullscreen,1,Owen
+generatefile,Generates an .oos file.,1,Owen
+get messages,Show terminal messages.,1,Owen
+getuser icon,Shows current user icon.,1,Owen
+htmlnano,Run HTML file in nano.,1,Owen
+installpkg,Install a package.,1,Owen
+launch,"Launch HTML, .oos, or .app file.",1,Owen
+launchhtml,Launch HTML one-time window.,1,Owen
+launchstart,Launch all startup apps.,1,Owen
+link,Link an .oos file to a command.,1,Owen
+linkvar,Link a variable to a command.,1,Owen
+look,Shows saved metadata for a command,1,Owen
+loop,Loop a command n times.,1,Owen
+ls,Lists files and directories in the current folder.,1,Owen
+man,Displays this manual.,1,Owen
+memory,See storage details.,1,Owen
+minimize,Minimize a window.,1,Owen
+movedir,Move folders forward.,1,Owen
+movedir-,Move folders backward.,1,Owen
+movefile,Move files forward.,1,Owen
+movefile-,Move files backward.,1,Owen
+nano,Nano editor.,1,Owen
+nano file.txt,Opens nano editor and displays text from file.,1,Owen
+neofetch,Displays system/user/device info.,1,Owen
+newline,Create an input line.,1,Owen
+oos,Basic file GUI.,1,Owen
+open windows,Restore minimized windows.,1,Owen
+openfinder,Specify directory to open in finder.,1,Owen
+openwin,Create a window.,1,Owen
+oplus,Show O++ info.,1,Owen
+paste,Paste a file or folder.,1,Owen
+pkg,Add HTML app to package manager.,1,Owen
+pkgmgr,View apps in package manager.,1,Owen
+printvar,print varaible starting at 0,1,Owen
+pwd,Shows what directory you are in.,1,Owen
+quicknote,open quicknote,1,Owen
+recents,View recent applications.,1,Owen
+recordscreen,record the screen,1,Owen
+refresh,Refresh the page.,1,Owen
+reload,"reloads desktop, dock without refreshing window",1,Owen
+register,Opens metadata editor popup for command,1.1,Owen
+rename,Rename a folder.,1,Owen
+reset,Reset account.,1,Owen
+returnmin,Restore all minimized windows.,1,Owen
+rm,Deletes a file or folder in current directory.,1,Owen
+rmbridge,Remove nth bridge command.,1,Owen
+rmdup,Remove file duplicates (excl. /apps).,1,Owen
+run,Opens the specified HTML file in a new tab.,1,Owen
+runbridge,Run stored commands from localStorage.,1,Owen
+runlink,Run a .oos link file.,1,Owen
+runvar,Run the variable.,1,Owen
+scan,scan system for inconsistencies then option to run through redudant files,1,Owen
+send messages,Send a terminal message.,1,Owen
+setback,Set new background image.,1,Owen
+setpass,Set password for user.,1,Owen
+setuser icon,Sets icon for account.,1,Owen
+setvar,Set a variable.,1,Owen
+showvar,Display variable value.,1,Owen
+shutdown,Logs out and shuts down.,1,Owen
+signin,Signin to a user.,1,Owen
+signout,Signs out of current user.,1,Owen
+sleep,Puts device to sleep.,1,Owen
+stop,Stop window manager.,1,Owen
+stopdonut,stop donut from spinning,1,Owen
+stoploop,stop a loop,1,Owen
+stoprecord,stop screen recording,1,Owen
+string,Create a string of text and variables.,1,Owen
+sudo apt,Installs a new app by prompting for name and icon.,1,Owen
+sudo folder,Creates a new folder.,1,Owen
+sudo html install,Installs a new app with an optional icon.,1,Owen
+sudo html list,Lists all installed apps.,1,Owen
+sudo user,Create a new user.,1,Owen
+systemcommand,opens system command gui,1,Owen
+tile,Tile windows.,1,Owen
+time,Display time.,1,Owen
+touch,Create a file.,1,Owen
+up,Goes back a directory and lists contents.,1,Owen
+uploadpkg,Upload package JSON.,1,Owen
+user icon,set user icon,1,Owen
+version,Show Intnix version.,1,Owen
+view,View folder contents by path.,1,Owen
+view apps,Lists installed apps with their icons and filenames.,1,Owen
+view users,View a list of all users.,1,Owen
+viewstart,View startup apps.,1,Owen
+Webkernel,opens window terminal,1,Owen
+webpage,Opens a website in a new tab. Adds '.com' if missing.,1,Owen
+whoami,display user in terminal,1,Owen
+window terminal,Put terminal in window.,1,Owen
+wingmgr,Manage window layout.,1,Owen
+zip,Downloads a ZIP of folder contents.,1,Owen

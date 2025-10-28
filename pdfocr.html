@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Viewer with OCR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f5f5f7;
+            color: #333;
+        }
+        h2 {
+            font-weight: 600;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            text-align: left;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            cursor: crosshair;
+            display: block;
+            margin: 10px auto;
+            border-radius: 8px;
+        }
+        #controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        button, select, input {
+            padding: 10px 15px;
+            font-size: 14px;
+            border-radius: 8px;
+            border: none;
+            background-color: #007AFF;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover, select:hover, input:hover {
+            background-color: #005ecb;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #output {
+            margin-top: 20px;
+            font-weight: bold;
+            white-space: pre-wrap;
+            background: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+		   #selectionOverlay {
+        position: absolute;
+        border: 2px dashed red;
+        background: rgba(255, 0, 0, 0.2);
+        display: none;
+        pointer-events: none; /* Prevents blocking interactions */
+        z-index: 10; /* Keeps it above everything */
+    }
+    </style>
+</head>
+<body>
+    <h2>PDF Viewer with OCR</h2>
+    <div class="container">
+        <div id="controls">
+            <input type="file" id="pdfUpload" accept="application/pdf">
+			   <input type="range" id="sizeSlider" min="300" max="900" value="600">
+            <button id="prevPage">◀ Prev</button>
+            <button id="nextPage">Next ▶</button>
+            <span>Page: <span id="pageNum">1</span> / <span id="pageCount">?</span></span>
+            <select id="languageSelect">
+                <option value="eng" selected>English</option>
+                <option value="spa">Spanish</option>
+                <option value="fra">French</option>
+                <option value="deu">German</option>
+            </select>
+            <button id="extractText">Extract Text</button>
+        </div>
+<div id="selectionOverlay"></div>
+        <canvas id="pdfCanvas"></canvas>
+        <div id="output">Extracted Text: </div>
+    </div>
+    
+    <script>
+let pdfDoc = null, pageNum = 1, pageCount = 0;
+let canvas = document.getElementById("pdfCanvas");
+let ctx = canvas.getContext("2d");
+let selection = null, startX, startY, endX, endY;
+let isDrawing = false;
+
+// Create an overlay canvas for smooth selection
+let overlayCanvas = document.createElement("canvas");
+let overlayCtx = overlayCanvas.getContext("2d");
+overlayCanvas.style.position = "absolute";
+overlayCanvas.style.pointerEvents = "none"; // Allow interaction with the main canvas
+document.body.appendChild(overlayCanvas);
+
+// Function to resize the overlay dynamically
+function resizeOverlay() {
+    let rect = canvas.getBoundingClientRect(); // Get the updated position and size
+    overlayCanvas.width = canvas.width;
+    overlayCanvas.height = canvas.height;
+    overlayCanvas.style.top = `${rect.top + window.scrollY}px`;
+    overlayCanvas.style.left = `${rect.left + window.scrollX}px`;
+}
+
+// Resize overlay when the window resizes
+window.addEventListener("resize", resizeOverlay);
+
+// PDF Upload
+document.getElementById("pdfUpload").addEventListener("change", function(event) {
+    let file = event.target.files[0];
+    if (file) {
+        let fileReader = new FileReader();
+        fileReader.readAsArrayBuffer(file);
+        fileReader.onload = function() {
+            let typedarray = new Uint8Array(this.result);
+            
+            // Close previous PDF if it exists
+            if (pdfDoc) {
+                pdfDoc.destroy();
+                pdfDoc = null;
+            }
+
+            pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                pdfDoc = pdf;
+                pageCount = pdf.numPages;
+                pageNum = 1; // Reset to first page
+
+                document.getElementById("pageCount").innerText = pageCount;
+                document.getElementById("pageNum").innerText = pageNum;
+
+                clearCanvas(); // Clear previous PDF
+                renderPage(pageNum);
+            });
+        };
+    }
+});
+
+// Function to clear the canvas when loading a new PDF
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 0;
+    canvas.height = 0;
+}
+
+// Render PDF Page
+function renderPage(num) {
+    if (!pdfDoc) return; // Prevent errors if no PDF is loaded
+
+    pdfDoc.getPage(num).then(function(page) {
+        let scale = document.getElementById("sizeSlider").value / 600; // Scale dynamically
+        let viewport = page.getViewport({ scale: scale });
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        let renderContext = {
+            canvasContext: ctx,
+            viewport: viewport
+        };
+        page.render(renderContext);
+
+        document.getElementById("pageNum").innerText = num;
+        resizeOverlay(); // Resize overlay after rendering
+    });
+}
+
+
+// Page Navigation
+document.getElementById("prevPage").addEventListener("click", function() {
+    if (pageNum > 1) {
+        pageNum--;
+        renderPage(pageNum);
+    }
+});
+
+document.getElementById("nextPage").addEventListener("click", function() {
+    if (pageNum < pageCount) {
+        pageNum++;
+        renderPage(pageNum);
+    }
+});
+
+// Adjust Canvas Size with Slider
+document.getElementById("sizeSlider").addEventListener("input", function() {
+    renderPage(pageNum); // Re-render the PDF page with the new size
+});
+
+// Selection Tool Events
+canvas.addEventListener("mousedown", (event) => {
+    startX = event.offsetX;
+    startY = event.offsetY;
+    isDrawing = true;
+});
+
+canvas.addEventListener("mousemove", (event) => {
+    if (!isDrawing) return;
+
+    endX = event.offsetX;
+    endY = event.offsetY;
+
+    // Clear previous selection overlay
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+    // Draw the selection rectangle
+    overlayCtx.strokeStyle = "red";
+    overlayCtx.lineWidth = 2;
+    overlayCtx.strokeRect(startX, startY, endX - startX, endY - startY);
+});
+
+canvas.addEventListener("mouseup", (event) => {
+    isDrawing = false;
+    endX = event.offsetX;
+    endY = event.offsetY;
+    selection = {
+        x: startX,
+        y: startY,
+        width: endX - startX,
+        height: endY - startY,
+    };
+
+    // Draw the final rectangle on the main canvas
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(selection.x, selection.y, selection.width, selection.height);
+
+    // Clear the overlay canvas
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+});
+
+// OCR Extraction
+document.getElementById("extractText").addEventListener("click", () => {
+    if (!selection) {
+        alert("Please select a region first!");
+        return;
+    }
+
+    let imageData = ctx.getImageData(selection.x, selection.y, selection.width, selection.height);
+    let tempCanvas = document.createElement("canvas");
+    let tempCtx = tempCanvas.getContext("2d");
+
+    tempCanvas.width = selection.width;
+    tempCanvas.height = selection.height;
+    tempCtx.putImageData(imageData, 0, 0);
+
+    let language = document.getElementById("languageSelect").value;
+
+    tempCanvas.toBlob((blob) => {
+        Tesseract.recognize(blob, language).then(({ data: { text } }) => {
+            let cleanedText = cleanExtractedText(text);
+            if (cleanedText) {
+                appendBulletPoint(cleanedText);
+            }
+        });
+    });
+});
+
+// Function to clean extracted text
+function cleanExtractedText(text) {
+    return text
+        .split("\n")                      // Split by new lines
+        .map(line => line.trim())         // Trim spaces from each line
+        .filter(line => line.length > 0)  // Remove empty lines
+        .join(" ");                        // Join into a single formatted paragraph
+}
+
+// Function to append extracted text as a properly formatted bullet point
+// Function to display extracted text as a single entry instead of a bullet list
+function appendBulletPoint(text) {
+    let outputDiv = document.getElementById("output");
+    outputDiv.textContent = text; // Replace content instead of appending
+}
+
+
+
+
+    </script>
+</body>
+</html>

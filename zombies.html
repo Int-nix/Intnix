@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hex Color Print Calibrator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    input[type="color"],
+    input[type="text"] {
+      font-size: 1.2rem;
+      padding: 0.3rem;
+      margin: 1rem;
+    }
+
+    .color-display {
+      width: 200px;
+      height: 200px;
+      margin: 1rem auto;
+      border: 3px solid #fff;
+      border-radius: 12px;
+      transition: filter 0.2s;
+    }
+
+    .sliders {
+      margin-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .slider-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      margin-right: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎨 Print Color Calibrator</h1>
+
+  <div>
+    <label for="hexInput">Hex Color:</label>
+    <input type="color" id="colorPicker" value="#ff0000">
+    <input type="text" id="hexInput" value="#ff0000">
+  </div>
+
+  <div class="color-display" id="colorBox"></div>
+
+  <div class="sliders">
+    <div class="slider-group">
+      <label>Brightness</label>
+      <input type="range" id="brightness" min="0" max="200" value="100">
+    </div>
+    <div class="slider-group">
+      <label>Contrast</label>
+      <input type="range" id="contrast" min="0" max="200" value="100">
+    </div>
+    <div class="slider-group">
+      <label>Saturation</label>
+      <input type="range" id="saturation" min="0" max="200" value="100">
+    </div>
+  </div>
+
+  <p>Adjust sliders to match print. Once it looks the same, save values for use in other color conversions.</p>
+
+  <script>
+    const colorPicker = document.getElementById("colorPicker");
+    const hexInput = document.getElementById("hexInput");
+    const colorBox = document.getElementById("colorBox");
+
+    const brightnessSlider = document.getElementById("brightness");
+    const contrastSlider = document.getElementById("contrast");
+    const saturationSlider = document.getElementById("saturation");
+
+    function updateColorBox() {
+      const hex = hexInput.value;
+      colorBox.style.backgroundColor = hex;
+
+      const brightness = brightnessSlider.value;
+      const contrast = contrastSlider.value;
+      const saturation = saturationSlider.value;
+
+      colorBox.style.filter = `
+        brightness(${brightness}%)
+        contrast(${contrast}%)
+        saturate(${saturation}%)
+      `;
+    }
+
+    colorPicker.addEventListener("input", (e) => {
+      hexInput.value = e.target.value;
+      updateColorBox();
+    });
+
+    hexInput.addEventListener("input", (e) => {
+      colorPicker.value = e.target.value;
+      updateColorBox();
+    });
+
+    [brightnessSlider, contrastSlider, saturationSlider].forEach(slider => {
+      slider.addEventListener("input", updateColorBox);
+    });
+
+    updateColorBox();
+  </script>
+</body>
+</html>

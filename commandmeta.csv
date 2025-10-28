@@ -1,0 +1,6 @@
+command,description,version,author
+cat,Displays contents of a file,1.0,Owen
+cd,Changes current working directory,1.0,Owen
+look,Shows saved metadata for a command,1.0,Owen
+register,Opens metadata editor popup for command,1.1,Owen
+nano,Edits file content in a text editor,1.0,Owen

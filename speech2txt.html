@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech to Text</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            min-height: 50px;
+            width: 80%;
+            display: inline-block;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Speech to Text Converter</h1>
+    <button onclick="startRecognition()">Start Talking</button>
+    <button onclick="stopRecognition()">Stop</button>
+    <button onclick="resetText()">Reset</button>
+    <button onclick="copyText()">Copy Text</button>
+    <div id="output"></div>
+
+    <script>
+        let recognition;
+        
+        function startRecognition() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert('Your browser does not support speech recognition. Try using Chrome.');
+                return;
+            }
+            
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 10;
+            recognition.lang = 'en-US';
+            
+            recognition.onresult = function(event) {
+                let transcript = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
+                document.getElementById('output').innerText = transcript;
+            };
+            
+            recognition.start();
+        }
+        
+        function stopRecognition() {
+            if (recognition) {
+                recognition.stop();
+            }
+        }
+
+        function resetText() {
+            document.getElementById('output').innerText = '';
+        }
+        
+        function copyText() {
+            const outputElement = document.getElementById('output');
+            const textToCopy = outputElement.innerText;
+            if (textToCopy.trim()) {
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textArea);
+                alert('Text copied to clipboard!');
+            } else {
+                alert('No text to copy!');
+            }
+        }
+    </script>
+</body>
+</html>

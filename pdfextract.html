@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Page Extractor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.16.0/pdf-lib.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>PDF Page Extractor</h2>
+        <input type="file" id="pdfInput" accept="application/pdf">
+        <input type="number" id="startPage" min="1" placeholder="Start Page">
+        <input type="number" id="endPage" min="1" placeholder="End Page">
+        <button onclick="extractPages()">Extract Pages</button>
+    </div>
+    
+    <script>
+        async function extractPages() {
+            const input = document.getElementById("pdfInput").files[0];
+            const startPage = parseInt(document.getElementById("startPage").value);
+            const endPage = parseInt(document.getElementById("endPage").value);
+            
+            if (!input) {
+                alert("Please select a PDF file.");
+                return;
+            }
+            
+            const arrayBuffer = await input.arrayBuffer();
+            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+            const newPdfDoc = await PDFLib.PDFDocument.create();
+            
+            for (let i = startPage - 1; i < endPage; i++) {
+                const [copiedPage] = await newPdfDoc.copyPages(pdfDoc, [i]);
+                newPdfDoc.addPage(copiedPage);
+            }
+            
+            const newPdfBytes = await newPdfDoc.save();
+            const blob = new Blob([newPdfBytes], { type: "application/pdf" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "extracted_pages.pdf";
+            link.click();
+        }
+    </script>
+</body>
+</html>

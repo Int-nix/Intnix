@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Render Assets</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="assets.js"></script>
+    <style>
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; font-family: Arial, sans-serif; background-color: #222; color: white; }
+        h2 { margin-top: 20px; }
+        #assets { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; padding: 20px; }
+        .asset-container { 
+            width: 150px; height: 180px; position: relative; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: grab; background: #333; border-radius: 10px; box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        .asset-container:hover { background: #444; }
+        .asset-label { 
+            margin-top: 5px; font-size: 14px; text-align: center; 
+            color: white; background: rgba(0, 0, 0, 0.7); padding: 4px 8px; border-radius: 5px; 
+        }
+		 .pagination { margin-top: 10px; }
+        .page-button {
+    background: #555;
+    color: white;
+    border: none;
+    padding: 10px;
+    margin-left: 200px; /* Move button 20px to the right */
+    cursor: pointer;
+    border-radius: 5px;
+}
+        .page-button:disabled { background: #777; cursor: not-allowed; }
+        canvas { display: block; }
+        .selected-assets { 
+            display: flex; justify-content: center; 
+            gap: 15px; margin-top: 20px; padding: 20px; 
+            background: #111; border-radius: 10px; 
+        }
+        .slot { 
+            width: 50px; height: 50px; background-color: #333; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            font-size: 14px; border: 2px dashed #777; 
+            border-radius: 10px; position: relative; transition: background 0.3s;
+        }
+        .slot:hover { background: #444; }
+        .slot-content { text-align: center; font-size: 14px; }
+        .remove-btn { 
+            position: absolute; top: 5px; right: 5px; 
+            background: red; color: white; border: none; 
+            cursor: pointer; font-size: 14px; padding: 4px 6px; 
+            border-radius: 50%; box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <h2>Available Assets</h2>
+	 <div class="pagination">
+        <button id="prevPage" class="page-button" onclick="prevPage()" disabled>Previous</button>
+        <span id="pageIndicator">Page 1</span>
+        <button id="nextPage" class="page-button" onclick="nextPage()">Next</button>
+    <div id="assets"></div>
+    <h2>Selected Assets (Drag into slots)</h2>
+    <div class="selected-assets" id="selectedAssets">
+<div class="selected-assets" id="selectedAssets">
+    <div class="slot" data-slot-number="1" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="slot" data-slot-number="2" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="slot" data-slot-number="3" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="slot" data-slot-number="4" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="slot" data-slot-number="5" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="slot" data-slot-number="6" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="slot" data-slot-number="7" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="slot" data-slot-number="8" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="slot" data-slot-number="9" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+</div>
+  <h1>Available Assets</h1>
+    <div id="assets"></div>
+   
+    </div>
+
+    </div>
+    
+    <script>
+     function createScene(container, assetFunction, assetName) {
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+    const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(120, 120);
+    container.appendChild(renderer.domElement);
+
+    const light = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(light);
+
+    const asset = assetFunction(new THREE.Vector3(0, 0, 0));
+    scene.add(asset);
+
+    const box = new THREE.Box3().setFromObject(asset);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scaleFactor = 2 / maxDim;
+    asset.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+    // Adjust camera position to be higher and look down at the asset
+    camera.position.set(0, 3, 5); // Moves camera up and back
+    camera.lookAt(0, 0, 0); // Ensures the camera looks at the asset
+
+    function animate() {
+        requestAnimationFrame(animate);
+        asset.rotation.y += 0.01;
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    container.setAttribute('draggable', 'true');
+    container.addEventListener('dragstart', (event) => drag(event, assetName));
+
+    const label = document.createElement('div');
+    label.className = 'asset-label';
+    label.textContent = assetName;
+    container.appendChild(label);
+}
+
+        function drag(event, assetName) {
+            event.dataTransfer.setData('text', assetName);
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+  function drop(event) {
+    event.preventDefault();
+    const assetName = event.dataTransfer.getData('text');
+
+    if (event.target.classList.contains('slot') && !event.target.hasChildNodes()) {
+        const div = document.createElement('div');
+        div.className = 'slot-content';
+        div.textContent = assetName;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = '-';
+        removeBtn.onclick = () => {
+            console.log(`Slot ${event.target.dataset.slotNumber}: Asset removed (${assetName})`);
+            event.target.innerHTML = '';
+            saveAssetsToMemory();
+        };
+
+        div.appendChild(removeBtn);
+        event.target.appendChild(div);
+
+        console.log(`Slot ${event.target.dataset.slotNumber}: ${assetName}`);
+        saveAssetsToMemory();
+    }
+}
+
+function saveAssetsToMemory() {
+    let selectedAssets = [];
+    document.querySelectorAll('.slot').forEach((slot, index) => {
+        let assetName = slot.querySelector('.slot-content')?.textContent || null;
+        if (assetName) {
+            assetName = assetName.replace('-', '').trim(); // Remove the minus sign
+        }
+        selectedAssets.push({ slot: index + 1, asset: assetName });
+    });
+
+    localStorage.setItem('selectedAssets', JSON.stringify(selectedAssets));
+    console.log("✅ [SAVE] Assets saved to localStorage:", selectedAssets);
+}
+
+        const assets = [
+           createTree, createRock, createBuilding, createHouse, createLake,
+            createRoad, createCar, createAirplane, createSidewalk, createNPC, createFence, createAK47, createWarehouse,
+            createWall, createTank,createPlayer, createCastle, createTruck, createHedge, createStairs, createTerrainBlock, createTerrainBlockTall,
+			createTerrainBlockTallest, createMountain, createTable, createZombie, createPortal, createWallBuy, createFire, createJuggerNogMachine,
+createPackAPunchMachine, createQuickRevive, createRemovableBarrier, createSpeedColaMachine, createDoubleTapMachine, 
+createMysteryBox, 			
+			
+        ];
+
+        assets.forEach(assetFunc => {
+            const container = document.createElement('div');
+            container.className = 'asset-container';
+            document.getElementById('assets').appendChild(container);
+            createScene(container, assetFunc, assetFunc.name);
+        });
+		
+		document.addEventListener("keydown", function(event) {
+    if (event.key.toLowerCase() === "b") {
+        window.close();
+    }
+	
+	  // Clear slot data from memory after logging
+    localStorage.removeItem('selectedAssets');
+});
+
+ let currentPage = 1;
+        const itemsPerPage = 10;
+
+        function renderAssets() {
+            const assetsContainer = document.getElementById("assets");
+            assetsContainer.innerHTML = "";
+            
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = Math.min(start + itemsPerPage, assets.length);
+
+            
+            assets.slice(start, end).forEach(assetFunc => {
+                const container = document.createElement("div");
+                container.className = "asset-container";
+                assetsContainer.appendChild(container);
+                createScene(container, assetFunc, assetFunc.name);
+            });
+            
+            document.getElementById("pageIndicator").textContent = `Page ${currentPage}`;
+            document.getElementById("prevPage").disabled = currentPage === 1;
+            document.getElementById("nextPage").disabled = end >= assets.length;
+        }
+
+        function nextPage() {
+            if (currentPage * itemsPerPage < assets.length) {
+                currentPage++;
+                renderAssets();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderAssets();
+            }
+        }
+
+        window.onload = renderAssets;
+
+window.onload = function() {
+    currentPage = 1;
+    renderAssets();
+};
+
+        // ✅ Resize handler
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

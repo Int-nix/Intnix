@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI to CSS Generator - Photoshop Style</title>
+    <style>
+body { font-family: Arial, sans-serif; background-color: #2e2e2e; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; color: white; }
+.container { width: 90%; max-width: 900px; background: #3c3c3c; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; height: 80vh; }
+.element-0 { position: relative; width: 60%; height: 70vh; border: 2px solid red; background: #222; display: flex; justify-content: center; align-items: center; }
+canvas { width: 100%; height: 100%; cursor: crosshair; background: #333; }
+.element-1 { position: relative; width: 30%; height: 70vh; border: 2px solid red; background: #1e1e1e; padding: 10px; display: flex; flex-direction: column; justify-content: center; }
+#css-output { width: 100%; height: 100%; font-family: monospace; background: #1e1e1e; color: #ddd; border: none; resize: none; }
+.element-2 { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 450px; height: 60px; display: flex; justify-content: space-around; align-items: center; border: 2px solid red; background: #444; border-radius: 5px; padding: 10px; }
+button { padding: 10px 15px; background: #007acc; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: 0.3s; }
+button:hover { background: #005f99; }
+.selected { border: 2px dashed yellow !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="element-0">
+            <canvas id="canvas"></canvas>
+        </div>
+        <div class="element-1">
+            <h3>Generated CSS</h3>
+            <textarea id="css-output" readonly></textarea>
+        </div>
+        <div class="element-2">
+            <button id="toggle-mode">Mode: Draw</button>
+            <button id="clear">Clear</button>
+            <button id="undo">Undo</button>
+        </div>
+    </div>
+    <script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const cssOutput = document.getElementById('css-output');
+const clearButton = document.getElementById('clear');
+const undoButton = document.getElementById('undo');
+const modeButton = document.getElementById('toggle-mode');
+
+let mode = "draw";
+let drawing = false, startX, startY;
+let elements = [];
+let selectedElement = null, offsetX = 0, offsetY = 0;
+let copiedElement = null;
+
+function resizeCanvas() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    recalculateElements();
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function getRectangleBounds(x1, y1, x2, y2) {
+    return {
+        left: Math.min(x1, x2) / canvas.width,
+        top: Math.min(y1, y2) / canvas.height,
+        width: Math.abs(x2 - x1) / canvas.width,
+        height: Math.abs(y2 - y1) / canvas.height
+    };
+}
+
+function drawRectangles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    elements.forEach((el, i) => {
+        ctx.strokeStyle = el === selectedElement ? 'yellow' : 'cyan';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(el.left * canvas.width, el.top * canvas.height, el.width * canvas.width, el.height * canvas.height);
+    });
+}
+
+canvas.addEventListener('mousedown', (e) => {
+    if (mode === "draw") {
+        drawing = true;
+        startX = e.offsetX;
+        startY = e.offsetY;
+    } else if (mode === "select") {
+        selectedElement = elements.find(el => e.offsetX >= el.left * canvas.width && e.offsetX <= (el.left + el.width) * canvas.width &&
+                                             e.offsetY >= el.top * canvas.height && e.offsetY <= (el.top + el.height) * canvas.height);
+        if (selectedElement) {
+            offsetX = e.offsetX / canvas.width - selectedElement.left;
+            offsetY = e.offsetY / canvas.height - selectedElement.top;
+        }
+        drawRectangles();
+    }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if (drawing) {
+        drawRectangles();
+        let rect = getRectangleBounds(startX, startY, e.offsetX, e.offsetY);
+        ctx.strokeStyle = 'cyan';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(rect.left * canvas.width, rect.top * canvas.height, rect.width * canvas.width, rect.height * canvas.height);
+    } else if (selectedElement && mode === "select" && e.buttons === 1) {
+        selectedElement.left = e.offsetX / canvas.width - offsetX;
+        selectedElement.top = e.offsetY / canvas.height - offsetY;
+        drawRectangles();
+    }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+    if (drawing) {
+        drawing = false;
+        let rect = getRectangleBounds(startX, startY, e.offsetX, e.offsetY);
+        elements.push(rect);
+    }
+    drawRectangles();
+    generateCSS();
+});
+
+function recalculateElements() {
+    drawRectangles();
+    generateCSS();
+}
+
+function generateCSS() {
+    cssOutput.value = elements.map((el, i) => 
+        `.element-${i} {
+  position: absolute;
+  top: ${(el.top * 100).toFixed(2)}%;
+  left: ${(el.left * 100).toFixed(2)}%;
+  width: ${(el.width * 100).toFixed(2)}%;
+  height: ${(el.height * 100).toFixed(2)}%;
+  border: 2px solid red;
+}`).join('\n\n');
+}
+
+document.addEventListener('keydown', (e) => {
+    if (mode === "select" && selectedElement) {
+        if (e.ctrlKey && e.key === 'c') {
+            copiedElement = { ...selectedElement };
+        }
+        if (e.ctrlKey && e.key === 'v' && copiedElement) {
+            elements.push({ ...copiedElement, left: copiedElement.left + 0.02, top: copiedElement.top + 0.02 });
+            drawRectangles();
+            generateCSS();
+        }
+    }
+});
+
+clearButton.addEventListener('click', () => {
+    elements = [];
+    drawRectangles();
+    cssOutput.value = '';
+});
+
+undoButton.addEventListener('click', () => {
+    elements.pop();
+    drawRectangles();
+    generateCSS();
+});
+
+modeButton.addEventListener('click', () => {
+    mode = mode === "draw" ? "select" : "draw";
+    modeButton.textContent = `Mode: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
+});
+
+    </script>
+</body>
+</html>

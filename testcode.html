@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JavaScript Text Editor & Runner</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/edit/matchbrackets.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    .container { display: flex; height: 100vh; flex-direction: column; }
+    .top-bar { padding: 10px; text-align: center; background: #1e1e1e; }
+    .tab-container { display: flex; padding: 5px; background: #ddd; }
+    .tab { padding: 5px 10px; margin: 2px; cursor: pointer; background: #bbb; border-radius: 5px; }
+    .tab.active { background: #888; color: white; }
+    .editor-container { flex: 4; background:#1e1e1e }
+    .resizer { width: 5px; cursor: ew-resize; background: #666; }
+    button {
+      background-color: #333; color: #fff; border: none; padding: 10px 15px;
+      border-radius: 5px; cursor: pointer; transition: background-color 0.3s, transform 0.2s;
+    }
+    button:hover { background-color: #444; transform: scale(1.05); }
+    button:active { background-color: #555; transform: scale(0.98); }
+    .CodeMirror {
+      font-weight: bold !important; height:100%;
+      background: #1e1e1e !important; color: #ffffff !important;
+    }
+    .CodeMirror-cursor {
+      border-left: 2px solid #ffffff !important;
+      animation: blink 1s step-start infinite;
+    }
+    @keyframes blink { 5% { opacity: 0; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-bar">
+      <button onclick="runCode()">Run Code</button>
+      <button onclick="downloadCode()">Download Code</button>
+      <button onclick="openFile()">Open File</button>
+      <button onclick="addTextTab()">Add Text</button>
+      <button onclick="stopCode()">Stop Code</button>
+      <label><input type="checkbox" id="toggleScroll" checked> Enable Scrolling</label>
+    </div>
+    <div class="tab-container" id="tabs"></div>
+    <div class="editor-container" id="editor-container"></div>
+    <div class="resizer" id="resizer"></div>
+  </div>
+
+  <script>
+    const editors = {};
+    let currentTab = null;
+    const tabContainer = document.getElementById("tabs");
+    const editorContainer = document.getElementById("editor-container");
+    let newDocCount = 1;
+
+    function createTab(fileName, content) {
+      if (editors[fileName]) return switchTab(fileName);
+
+      const tab = document.createElement("div");
+      tab.className = "tab";
+
+      const tabText = document.createElement("span");
+      tabText.textContent = fileName;
+      tabText.onclick = () => switchTab(fileName);
+
+      const deleteButton = document.createElement("button");
+      deleteButton.textContent = "x";
+      deleteButton.style.marginLeft = "5px";
+      deleteButton.onclick = (e) => {
+        e.stopPropagation();
+        deleteTab(fileName, tab);
+      };
+
+      tab.appendChild(tabText);
+      tab.appendChild(deleteButton);
+      tabContainer.appendChild(tab);
+
+      const newEditor = CodeMirror(editorContainer, {
+        mode: fileName.endsWith(".html") ? "htmlmixed" : "javascript",
+        theme: "default",
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        value: content
+      });
+
+      editors[fileName] = newEditor;
+      switchTab(fileName);
+    }
+
+    function switchTab(fileName) {
+      if (!editors[fileName]) return;
+
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      currentTab = fileName;
+
+      document.querySelectorAll(".tab").forEach(tab => {
+        if (tab.textContent.startsWith(fileName)) tab.classList.add("active");
+      });
+
+      editorContainer.innerHTML = "";
+      editorContainer.appendChild(editors[fileName].getWrapperElement());
+      setTimeout(() => editors[fileName].refresh(), 10);
+    }
+
+    function deleteTab(fileName, tabElement) {
+      delete editors[fileName];
+      tabContainer.removeChild(tabElement);
+      if (currentTab === fileName) {
+        const remaining = Object.keys(editors);
+        currentTab = remaining[0] || null;
+        if (currentTab) switchTab(currentTab);
+        else editorContainer.innerHTML = "";
+      }
+    }
+
+    function downloadCode() {
+      if (!currentTab) return;
+      const code = editors[currentTab].getValue();
+      const fileName = prompt("Enter file name (.html or .js):", currentTab);
+      if (!fileName) return;
+      const blob = new Blob([code], {
+        type: fileName.endsWith(".js") ? "text/javascript" : "text/html"
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function addTextTab() {
+      createTab("New Document #" + newDocCount, "");
+      newDocCount++;
+    }
+
+    function disableScroll() {
+      document.body.style.overflow = document.documentElement.style.overflow = "hidden";
+    }
+
+    function enableScroll() {
+      document.body.style.overflow = document.documentElement.style.overflow = "auto";
+    }
+
+    document.getElementById("toggleScroll").addEventListener("change", function () {
+      this.checked ? enableScroll() : disableScroll();
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (document.activeElement.closest(".CodeMirror")) return;
+      if (!document.getElementById("toggleScroll").checked &&
+          ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(e.key)) {
+        e.preventDefault();
+      }
+    });
+
+    document.addEventListener("wheel", function (e) {
+      if (document.activeElement.classList.contains("CodeMirror")) e.preventDefault();
+    }, { passive: false });
+
+    window.addEventListener("message", (event) => {
+      const { type, fileName, content, message } = event.data || {};
+      if (type === "loadFromLauncher" && fileName && content !== undefined) {
+        createTab(fileName, content);
+      } else if (type === "console-log") {
+        console.log(message);
+      } else if (type === "console-error") {
+        console.error(message);
+      }
+    });
+
+    window.addEventListener("load", () => addTextTab());
+  </script>
+</body>
+</html>

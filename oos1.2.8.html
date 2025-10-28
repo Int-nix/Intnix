@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Desktop Environment</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { overflow: hidden; background: url('background.jpg') center/cover no-repeat; height: 100vh; }
+        .top-bar { position: absolute; top: 0; left: 0; width: 100%; height: 30px; background: rgba(0, 0, 0, 0.8); color: white; display: flex; align-items: center; padding: 0 15px; justify-content: space-between; }
+        .dock { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; background: rgba(0, 0, 0, 0.8); padding: 10px; border-radius: 15px; align-items: center; }
+        .dock-item { position: relative; margin: 5px; cursor: pointer; text-align: center; }
+        .dock img { width: 50px; height: 50px; transition: 0.2s; }
+        .dock img:hover { transform: scale(1.2); }
+        .dot-indicator { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 6px; height: 6px; background: white; border-radius: 50%; display: none; }
+        .window { position: absolute; width: 500px; height: 350px; background: white; border-radius: 5px; box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; resize: both; overflow: hidden; }
+        .window-header { background: #333; color: white; padding: 5px; cursor: grab; display: flex; justify-content: space-between; align-items: center; }
+        .close-btn { color: red; cursor: pointer; }
+		.close-btn:hover {
+    color: darkred; /* Darker red for better visibility */font-weight: bold; /* Makes it stand out */ transform: scale(1.1); /* Slight zoom effect */ transition: 0.1s ease-in-out; /* Smooth transition */}
+        .file-manager { display: flex; height: 100%; }
+        .sidebar { width: 150px; background: #f4f4f4; padding: 10px; border-right: 1px solid #ccc; display: flex; flex-direction: column; }
+        .sidebar-item { padding: 8px; cursor: pointer; border-radius: 3px; }
+        .sidebar-item:hover { background: #ddd; }
+        .file-view { flex: 1; padding: 10px; overflow-y: auto; }
+        .file-item { padding: 5px; border-bottom: 1px solid #ccc; cursor: pointer; }
+		.file-item:hover { background: #e0e0e0; /* Light gray background */ color: #333; /* Darker text color for contrast */
+}
+
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div>OOS</div>
+        <div id="time"></div>
+    </div>
+    <div class="dock">
+          <div class="dock-item" id="folder-icon">
+            <img src="File.jpg" onclick="openFileManager('folder-icon')">
+            <div class="dot-indicator"></div>
+        </div>
+        <div class="dock-item" id="app-icon">
+            <img src="animation.jpg" onclick="openWindow('Animation', 'app-icon', 'Animation9.1.html')">
+            <div class="dot-indicator"></div>
+        </div>
+    <div class="dock-item" id="app-icon1">
+            <img src="text.jpg" onclick="openWindow('Code Editor', 'app-icon1', 'codetest.html')">
+            <div class="dot-indicator"></div>
+        </div>
+
+    <div class="dock-item" id="app-icon2">
+            <img src="pdf.jpg" onclick="openWindow('PDF Highlter', 'app-icon2', 'pdfvier2.html')">
+            <div class="dot-indicator"></div>
+        </div>
+   <div class="dock-item" id="app-icon3">
+            <img src="speech2txt.jpg" onclick="openWindow('Voice 2 Text', 'app-icon3', 'speech2txt.html')">
+            <div class="dot-indicator"></div>
+        </div>
+   <div class="dock-item" id="app-icon4">
+            <img src="texteditor.jpg" onclick="openWindow('Word Proccesor', 'app-icon4', 'texteditor.html')">
+            <div class="dot-indicator"></div>
+        </div>
+ <div class="dock-item" id="app-icon5">
+            <img src="game.jpg" onclick="openWindow('Game Engine', 'app-icon5', 'gameenginegood.html')">
+            <div class="dot-indicator"></div>
+        </div>
+ <div class="dock-item" id="app-icon6">
+            <img src="pdfocr.jpg" onclick="openWindow('PDF OCR', 'app-icon6', 'PDFOCR.html')">
+            <div class="dot-indicator"></div>
+        </div>
+ <div class="dock-item" id="app-icon6">
+            <img src="cssdraw.jpg" onclick="openWindow('CSS Sketch', 'app-icon6', 'cssdraw.html')">
+            <div class="dot-indicator"></div>
+        </div>
+
+        <div class="dock-item" id="app-icon7">
+                   <img src="terminal.jpg" onclick="openWindow('Terminal', 'app-icon7', 'terminal.html')">
+                   <div class="dot-indicator"></div>
+               </div>
+
+    </div>
+    <script>
+function updateDateTime() {
+    let now = new Date();
+
+    // Get time
+    let timeString = now.toLocaleTimeString();
+
+    // Get day of the week (e.g., Monday, Tuesday)
+    let dayString = now.toLocaleDateString(undefined, { weekday: 'long' });
+
+    // Get month and day (e.g., March 12)
+    let monthDayString = now.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+
+    // Update the div with full information
+    document.getElementById("time").innerText = `${dayString}, ${monthDayString} - ${timeString}`;
+}
+
+// Update every second
+setInterval(updateDateTime, 1000);
+updateDateTime(); // Call immediately to avoid delay
+
+
+
+
+    function makeDraggable(el) {
+        let offsetX, offsetY, isDragging = false;
+        el.querySelector('.window-header').addEventListener('mousedown', function(e) {
+            isDragging = true;
+            offsetX = e.clientX - el.offsetLeft;
+            offsetY = e.clientY - el.offsetTop;
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (isDragging) {
+                el.style.left = e.clientX - offsetX + 'px';
+                el.style.top = e.clientY - offsetY + 'px';
+            }
+        });
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+        });
+    }
+
+ function openWindow(title, dockIconId, filename = null) {
+    // Check if window is already open and minimized
+    let existingWin = document.querySelector(`.window[data-dock-id='${dockIconId}']`);
+    let minimizedBtn = document.getElementById(`minimized-${dockIconId}`);
+
+    if (existingWin) {
+        // If minimized, restore the window instead of creating a new one
+        if (minimizedBtn) {
+            restoreWindow(existingWin, minimizedBtn);
+            return;
+        } else {
+            // Window already exists and is not minimized, bring it to front
+            existingWin.style.display = "flex";
+            return;
+        }
+    }
+
+    // Create new window if it doesn't exist
+    let win = document.createElement("div");
+    win.classList.add("window");
+    win.dataset.dockId = dockIconId;
+
+    let content = filename
+        ? `<iframe src="${filename}" style="width:100%; height:calc(100% - 30px); border:none;"></iframe>`
+        : `<p style="width:100%; height:calc(100% - 30px); margin:0; display:flex; align-items:center; justify-content:center;">No file specified.</p>`;
+
+    win.innerHTML = `
+        <div class='window-header' style="display: flex; justify-content: space-between; align-items: center; padding: 5px;">
+            <span>${title}</span>
+            <div>
+                <span class='minimize-btn' onclick='minimizeWindow(this)' style="cursor: pointer; margin-right: 10px;">−</span>
+                <span class='close-btn' onclick='closeWindow(this, "${dockIconId}")' style="cursor: pointer;">×</span>
+            </div>
+        </div>
+        ${content}
+    `;
+
+    document.body.appendChild(win);
+    win.style.top = "100px";
+    win.style.left = "100px";
+    win.style.display = "flex";
+    win.style.flexDirection = "column";
+
+    makeDraggable(win);
+    document.querySelector(`#${dockIconId} .dot-indicator`).style.display = "block";
+}
+
+
+function minimizeWindow(minBtn) {
+    let win = minBtn.closest('.window');
+    let dockId = win.dataset.dockId;
+
+    // Check if a minimized button already exists
+    if (document.getElementById(`minimized-${dockId}`)) return;
+
+    // Create a minimized button
+    let minimizedBtn = document.createElement("div");
+    minimizedBtn.classList.add("dock-item");
+    minimizedBtn.id = `minimized-${dockId}`;
+    minimizedBtn.style.cursor = "pointer";
+
+    // Find the dock icon first
+    let appIcon = document.querySelector(`#${dockId} img`);
+    let iconImage = document.createElement("img");
+
+    if (appIcon) {
+        // Use the dock icon if it exists
+        iconImage.src = appIcon.src;
+    } else {
+        // Get the application title from the window header
+        let title = win.querySelector('.window-header span').innerText;
+
+        // Get the appIcons dictionary from the existing showFiles function
+        let appIcons = window.appIcons || {}; // Ensure it's accessible globally
+
+        // Find the correct icon based on the title
+        iconImage.src = appIcons[title] || "default_icon.png"; // Default fallback
+    }
+
+    iconImage.style.width = "50px";
+    iconImage.style.height = "50px";
+    iconImage.style.transition = "0.2s";
+
+    // Add hover effect
+    iconImage.onmouseover = () => (iconImage.style.transform = "scale(1.2)");
+    iconImage.onmouseout = () => (iconImage.style.transform = "scale(1)");
+
+    minimizedBtn.appendChild(iconImage);
+
+    // Restore window when clicked
+    minimizedBtn.onclick = function () {
+        restoreWindow(win, minimizedBtn);
+    };
+
+    // Add minimized button to the dock
+    document.querySelector('.dock').appendChild(minimizedBtn);
+    win.style.display = "none"; // Hide the window
+}
+
+function restoreWindow(win, minBtn) {
+    if (win) {
+        win.style.display = "flex"; // Restore the window
+    }
+
+    if (minBtn) {
+        minBtn.remove(); // Remove the minimized button
+    }
+}
+
+
+
+    function closeWindow(closeBtn, dockIconId) {
+        closeBtn.parentElement.parentElement.parentElement.remove();
+        document.querySelector(`#${dockIconId} .dot-indicator`).style.display = "none";
+    }
+
+
+
+
+function openFileManager(dockIconId) {
+    let existingWin = document.getElementById("file-manager-window");
+    if (existingWin) return; // Prevent opening multiple instances
+
+    let win = document.createElement("div");
+    win.classList.add("window");
+    win.id = "file-manager-window"; // Unique ID for File Manager
+    win.dataset.dockId = dockIconId; // Store dock icon ID
+
+    win.innerHTML = `
+        <div class='window-header' style="display: flex; justify-content: space-between; align-items: center; padding: 5px;">
+            <span>File Manager</span>
+            <div>
+                <span class='minimize-btn' onclick='minimizeFileManager()' style="cursor: pointer; margin-right: 10px;">−</span>
+                <span class='close-btn' onclick='closeFileManager()' style="cursor: pointer;">×</span>
+            </div>
+        </div>
+        <div class='file-manager'>
+            <div class='sidebar'>
+                            <div class='sidebar-item' onclick='showFiles("applications")'>Applications</div>
+                                  <div class='sidebar-item' onclick='showFiles("Websites")'>Websites</div>
+                <div class='sidebar-item' onclick='showFiles("desktop")'>Desktop</div>
+                <div class='sidebar-item' onclick='showFiles("documents")'>Documents</div>
+                <div class='sidebar-item' onclick='showFiles("downloads")'>Downloads</div>
+
+            </div>
+            <div class='file-view' id='file-view'>
+
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(win);
+    win.style.top = "150px";
+    win.style.left = "150px";
+    makeDraggable(win);
+
+    // Show dot indicator
+    document.querySelector(`#${dockIconId} .dot-indicator`).style.display = "block";
+}
+
+function minimizeFileManager() {
+    let win = document.getElementById("file-manager-window");
+    if (!win) return;
+
+    win.style.display = "none"; // Hide the window
+
+    // Create a minimize button in the dock
+    let dockButton = document.createElement("div");
+    dockButton.classList.add("dock-item"); // Use the same class as other dock icons
+    dockButton.id = "file-manager-minimized"; // Unique ID for minimize button
+    dockButton.style.cursor = "pointer";
+
+    // Create an image for the minimized button
+    let icon = document.createElement("img");
+    icon.src = "file.jpg"; // Use file.jpg as the icon
+    icon.style.width = "50px";  // Match other dock icons
+    icon.style.height = "50px";
+    icon.style.transition = "0.2s"; // Smooth scaling effect
+
+    // Add hover effect (same as other dock items)
+    icon.onmouseover = () => icon.style.transform = "scale(1.2)";
+    icon.onmouseout = () => icon.style.transform = "scale(1)";
+
+    // Restore File Manager when clicked
+    dockButton.onclick = restoreFileManager;
+    dockButton.appendChild(icon);
+
+    // Add the minimized icon to the dock
+    document.querySelector(".dock").appendChild(dockButton);
+}
+
+
+// Custom Restore Function
+function restoreFileManager() {
+    let win = document.getElementById("file-manager-window");
+    let minBtn = document.getElementById("file-manager-minimized");
+
+    if (win) {
+        win.style.display = "flex"; // Show window again
+        if (minBtn) minBtn.remove(); // Remove minimize button
+    }
+}
+
+// Custom Close Function
+function closeFileManager() {
+    let win = document.getElementById("file-manager-window");
+    let minBtn = document.getElementById("file-manager-minimized");
+
+    if (win) win.remove(); // Remove window
+    if (minBtn) minBtn.remove(); // Remove minimize button
+
+    // Hide dot indicator
+    document.querySelector("#folder-icon .dot-indicator").style.display = "none";
+}
+
+function openTab(url) {
+    // Ensure the URL starts with http or https
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url; // Default to https if missing
+    }
+    window.open(url, '_blank'); // Open in new tab
+}
+
+// Define globally so all functions can use it
+window.appIcons = {
+    "Zip to Pdf": "zip.jpg",
+    "Asset Viewer": "asset.jpg",
+    "Game Engine": "game.jpg",
+    "Animation Studio": "animation.jpg",
+    "PDF Viewer": "pdf.jpg",
+    "Code Test": "text.jpg",
+    "PDF Shortener": "pdf.jpg",
+    "Speech to Text": "speech2txt.jpg",
+	"Asset Viewer": "assetviewer.jpg",
+	"Zip to Pdf": "ziptopdf.jpg",
+    "Text Editor": "texteditor.jpg",
+	 "PDF OCR": "pdfocr.jpg",
+	"Grid Upload": "gridupload.jpg"
+};
+
+
+     function showFiles(section) {
+
+
+    let files = {
+        desktop: ['Shortcut 1', 'Shortcut 2'],
+        documents: ['Report.docx', 'Notes.txt'],
+        downloads: ['Setup.exe', 'Image.jpg'],
+        applications: [
+            { name: "Zip to Pdf", file: "Zip to PDF.html" },
+            { name: "Asset Viewer", file: "assetviewer.html" },
+            { name: "Game Engine", file: "gameenginegood.html" },
+            { name: "Animation Studio", file: "Animation9.1.html" },
+            { name: "PDF Viewer", file: "pdfvier2.html" },
+            { name: "Code Test", file: "codetest.html" },
+            { name: "PDF Shortener", file: "pdfextract.html" },
+            { name: "Speech to Text", file: "speech2txt.html" },
+			  { name: "Grid Upload", file: "griduploadjson.html" },
+			  	  { name: "PDF OCR", file: "PDFOCR.html" },
+            { name: "Text Editor", file: "texteditor.html" }
+        ],
+        Websites: [
+            { name: "Google", url: "https://www.google.com" },
+            { name: "Chat GPT", url: "https://www.chatgpt.com" },
+            { name: "YouTube", url: "https://www.youtube.com" },
+            { name: "Amazon", url: "https://www.amazon.ca" }
+        ]
+    };
+
+    let fileView = document.getElementById('file-view');
+    fileView.innerHTML = ""; // Clear existing content
+
+    if (section === "applications") {
+        files.applications.forEach((app, index) => {
+            let iconSrc = appIcons[app.name] || "default.jpg"; // Assign default icon if not found
+            let iconId = `app-icon-${index}`;
+
+            let fileItem = document.createElement("div");
+            fileItem.classList.add("file-item");
+            fileItem.innerHTML = `
+                <img src="${iconSrc}" style="width:20px; height:20px; margin-right:5px;">
+                <span onclick="openWindow('${app.name}', '${iconId}', '${app.file}')">${app.name}</span>
+            `;
+
+            fileView.appendChild(fileItem);
+        });
+    } else if (section === "Websites") {
+        files.Websites.forEach(site => {
+            let fileItem = document.createElement("div");
+            fileItem.classList.add("file-item");
+            fileItem.innerHTML = `<span onclick="openTab('${site.url}')">${site.name}</span>`;
+            fileView.appendChild(fileItem);
+        });
+    } else {
+        fileView.innerHTML = files[section].map(file => `<div class='file-item'>${file}</div>`).join('');
+    }
+}
+
+    </script>
+</body>
+</html>

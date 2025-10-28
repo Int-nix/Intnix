@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>File Explorer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+    body {
+      background: url('kingston.jpeg') center/cover no-repeat;
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
+      padding: 40px 20px 20px 20px;
+    }
+
+    /* Topbar */
+    #topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 24px;
+      background: #1e1e1e;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 13px;
+      z-index: 1000;
+      user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      box-shadow: inset 0 -1px 0 #333;
+    }
+
+    /* Menu containers */
+    .topbar-left, .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* Top-level menu item */
+    .menu {
+      position: relative;
+      padding: 2px 10px;
+      cursor: default;
+      display: flex;
+      align-items: center;
+      height: 24px;
+      border-radius: 4px;
+      transition: background 0.2s ease, color 0.2s ease;
+      font-weight: 500;
+      color: #e0e0e0;
+    }
+
+    .menu:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    /* Dropdown panel */
+    .dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #2a2a2a;
+      border: 1px solid #3d3d3d;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      display: none;
+      flex-direction: column;
+      padding: 6px 0;
+      z-index: 1001;
+      min-width: 160px;
+    }
+
+    /* Dropdown item */
+    .dropdown div {
+      padding: 6px 16px;
+      color: #f0f0f0;
+      font-size: 13px;
+      cursor: default;
+      white-space: nowrap;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .dropdown div:hover {
+      background-color: #3a3a3a;
+      color: #87CEFA;
+    }
+
+
+    .breadcrumbs {
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .crumb {
+      cursor: pointer;
+      color: #00ff88;
+    }
+
+    .crumb:hover {
+      text-decoration: underline;
+    }
+
+    .crumb-sep {
+      margin: 0 4px;
+      color: #ccc;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 12px;
+      padding-bottom: 100px;
+    }
+
+    .item {
+      text-align: center;
+      cursor: pointer;
+      padding: 10px;
+      border-radius: 10px;
+      background-color: rgba(0, 0, 0, 0.4);
+      transition: transform 0.2s ease;
+    }
+
+    .item:hover {
+      transform: scale(1.05);
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .icon {
+      font-size: 28px;
+      margin-bottom: 5px;
+    }
+
+    :root {
+    --dock-side: right;
+  }
+
+
+
+
+
+  #clock {
+    position: relative;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+    font-weight: bold;
+    font-size: 13px;
+    color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #clock:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Tooltip */
+  #clock-tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: -32px;
+    right: 0;
+    background: rgba(0, 0, 0, 0.95);
+    color: #87CEFA;
+    padding: 5px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-size: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1005;
+  }
+
+  #clock:hover #clock-tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
+
+
+
+#calendar {
+  position: fixed;
+  top: 24px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid #444;
+  border-radius: 8px;
+  color: white;
+  padding: 10px;
+  display: none;
+  z-index: 1002;
+  user-select: none;
+}
+
+#calendar table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#calendar th, #calendar td {
+  padding: 5px;
+  text-align: center;
+  font-size: 12px;
+}
+
+#calendar th {
+  color: #00ccff;
+}
+
+.today {
+  background-color: #00ccff;
+  border-radius: 50%;
+}
+
+.cal-nav {
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+.cal-nav:hover {
+  color: #00ccff;
+}
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <div class="topbar-left">
+
+      <!-- 🌐︎ Intnix Menu -->
+      <div class="menu" id="intnix-menu"
+           onmouseenter="showDropdown('intnix-dropdown')"
+           onmouseleave="hideDropdown('intnix-dropdown')">
+      <b>🌐︎ Intnix</b>
+        <div class="dropdown" id="intnix-dropdown">
+          <div onclick="sendCommand('fullscreen')">Full Screen</div>
+          <div onclick="sendCommand('exitfullscreen')">Exit Full Screen</div>
+          <div onclick="sendCommand('settings')">Settings</div>
+          <div onclick="sendCommand('reload')">Reload</div>
+            <div onclick="sendCommand('refresh')">Refresh Page</div>
+          <div onclick="sendCommand('signout')">Sign Out</div>
+          <div onclick="sendCommand('shutdown')">Shut Down</div>
+          <div onclick="sendCommand('sleep')">Sleep</div>
+        </div>
+      </div>
+
+      <!-- 💻 Terminal Button -->
+      <div class="menu" id="terminal-menu" onclick="sendCommand('windowterminal')">
+      <b>Webkernel</b>
+      </div>
+
+
+
+
+
+
+
+      <!-- ✏️ Edit Menu -->
+<div class="menu" id="edit-menu"
+     onmouseenter="showDropdown('edit-dropdown')"
+     onmouseleave="hideDropdown('edit-dropdown')">
+  <b>Edit</b>
+  <div class="dropdown" id="edit-dropdown">
+        <div onclick="sendCommand('makefilegui')">New File</div>
+        <div onclick="sendCommand('makefilegui')">New Folder</div>
+                    <div onclick="sendCommand('quicknote')">Sticky Note</div>
+            <div onclick="sendCommand('files')">File Manager</div>
+                <div onclick="sendCommand('recordscreen')">Record Screen</div>
+                    <div onclick="sendCommand('stoprecord')">Stop Record</div>
+                      <div onclick="sendCommand('applauncher')">App launcher</div>
+                          <div onclick="sendCommand('systemcommand')">Spotlight Command</div>
+    <!-- Future items go here -->
+  </div>
+</div>
+
+
+
+      <!-- 🧲 Recents Menu -->
+      <div class="menu" id="recents-menu"
+           onmouseenter="showRecents()"
+           onmouseleave="hideRecents()">
+      <b>Recents</b>
+        <div class="dropdown" id="recents-dropdown"></div>
+      </div>
+
+      <!-- 🔻 Bottom Dock (optional, dynamic content) -->
+
+
+    </div>
+
+    <div class="topbar-right">
+      <div id="clock">
+        <span id="clock-time">--:--</span>
+        <span id="clock-tooltip"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="breadcrumbs"></div>
+  <div class="grid"></div>
+  <div id="dock"></div>
+  <div id="calendar"></div>
+  <div id="desktop-context-menu" style="
+    position: absolute;
+    display: none;
+    background: #111;
+    color: #87CEEB;
+    border: 1px solid #444;
+    border-radius: 6px;
+    flex-direction: column;
+    padding: 6px;
+    z-index: 1000;
+  "></div>
+
+  <script>
+  function showRecents() {
+      const menu = document.getElementById("recents-dropdown");
+      menu.innerHTML = "";
+
+      const user = localStorage.getItem("currentUser") || "admin";
+      const recentItems = JSON.parse(localStorage.getItem(`recentFiles:${user}`) || "[]");
+
+      if (recentItems.length === 0) {
+        menu.innerHTML = "<div>No recent files</div>";
+      } else {
+        recentItems.slice(-5).reverse().forEach(path => {
+          const name = path.split("/").pop();
+          const div = document.createElement("div");
+          div.textContent = name;
+          div.onclick = () => {
+            parent.postMessage({
+              type: "terminal-input",
+              command: `launch ${name}`
+            }, "*");
+          };
+
+          menu.appendChild(div);
+        });
+      }
+
+      menu.style.display = "flex";
+    }
+
+  function hideRecents() {
+    document.getElementById("recents-dropdown").style.display = "none";
+  }
+
+  function updateClock() {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateString = now.toLocaleDateString([], {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    document.getElementById("clock-time").textContent = time;
+    document.getElementById("clock-tooltip").textContent = dateString;
+  }
+
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  function launchApp(path) {
+    addToRecents(path);
+    parent.postMessage({ type: "oos-launch", path }, "*");
+  }
+
+  function runlink(path) {
+    addToRecents(path);
+    parent.postMessage({ type: "oos-runlink", path }, "*");
+  }
+
+  function openText(path) {
+    parent.postMessage({ type: "oos-nano", path }, "*");
+  }
+
+  function addToRecents(path) {
+    if (typeof parent.trackRecentFile === "function") {
+      parent.trackRecentFile(path);
+    } else {
+      console.warn("trackRecentFile not found in parent");
+    }
+  }
+
+
+  function renderGrid(fs, appMeta, path = "/") {
+    const grid = document.querySelector(".grid");
+    grid.innerHTML = "";
+
+    const fileTypeHandlers = {
+      ".html": (fullPath, name) => {
+        parent.postMessage({ type: "terminal-input", command: `launch ${fullPath}` }, "*");
+      },
+      ".oos": (fullPath, name) => {
+        parent.postMessage({ type: "terminal-input", command: `launch ${fullPath}` }, "*");
+      },
+      ".txt": (fullPath, name) => {
+        parent.postMessage({ type: "terminal-input", command: `launchtext ${fullPath}` }, "*");
+      },
+      ".app": (fullPath, name) => {
+        parent.postMessage({ type: "terminal-input", command: `launch ${fullPath}` }, "*");
+      },
+      ".owen": (fullPath, name) => {
+        parent.postMessage({ type: "oos-runlink", path: fullPath }, "*");
+      },
+    };
+
+    const items = fs[path] || [];
+    items.forEach(name => {
+      const fullPath = path === "/" ? `/${name}` : `${path}/${name}`;
+      const isFolder = !!fs[fullPath];
+      const meta = appMeta[fullPath] || {};
+      const icon = meta.icon || (isFolder ? "📁" : "📄");
+
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `
+        ${meta.icon ? `<img src="${meta.icon}" class="app-icon">` : `<div class="icon">${icon}</div>`}
+        <div>${name}</div>
+      `;
+
+      // Enable dragging
+      div.setAttribute("draggable", "true");
+      div.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", fullPath);
+        e.dataTransfer.effectAllowed = "move";
+      });
+
+      // Allow folder as drop target
+      if (isFolder) {
+        div.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          div.classList.add("dragover");
+        });
+
+        div.addEventListener("dragleave", () => {
+          div.classList.remove("dragover");
+        });
+
+        div.addEventListener("drop", (e) => {
+          e.preventDefault();
+          div.classList.remove("dragover");
+          const draggedPath = e.dataTransfer.getData("text/plain");
+          parent.postMessage({
+            type: "terminal-input",
+            command: `movefile ${draggedPath} to ${fullPath}`
+          }, "*");
+        });
+      }
+
+      let clickCount = 0;
+      div.onclick = () => {
+        clickCount++;
+        setTimeout(() => {
+          if (clickCount === 1 && isFolder) {
+            parent.postMessage({ type: "finder-open", path: fullPath }, "*");
+          }
+          clickCount = 0;
+        }, 250);
+      };
+
+      div.ondblclick = () => {
+        if (isFolder) return;
+        const ext = name.slice(name.lastIndexOf(".")).toLowerCase();
+        const handler = fileTypeHandlers[ext];
+        if (handler) {
+          handler(fullPath, name);
+        } else {
+          alert(`No handler for file type: ${ext}`);
+        }
+      };
+
+      grid.appendChild(div);
+    });
+  }
+
+
+  function renderExplorer(fs, appMeta, path = "/") {
+    renderDock(fs, appMeta);
+    renderGrid(fs, appMeta, path);
+  }
+
+  window.addEventListener("message", (e) => {
+    const data = e.data;
+    if (data.type === "fs-data") {
+      renderExplorer(data.fs, data.appMeta, data.path || "/");
+
+    }
+
+    if (data.type === "oos-navigate" && typeof data.path === "string") {
+      // Placeholder for navigation re-render if needed
+    }
+  });
+
+  const currentUser = localStorage.getItem("currentUser") || "admin";
+  const bgImage = localStorage.getItem(`desktopBackground:${currentUser}`);
+  if (bgImage) {
+    document.body.style.backgroundImage = `url('${bgImage}')`;
+  }
+
+  document.getElementById("clock").addEventListener("click", function() {
+    const calendar = document.getElementById("calendar");
+    calendar.style.display = calendar.style.display === "none" ? "block" : "none";
+    if (calendar.style.display === "block") renderCalendar();
+  });
+
+  function renderCalendar() {
+    const calendarEl = document.getElementById("calendar");
+    const date = new Date();
+    const month = date.getMonth();
+    const year = date.getFullYear();
+    const today = date.getDate();
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+
+    let calendarHTML = '<table><tr><th colspan="7">' + date.toLocaleString('default', { month: 'long' }) + ' ' + year + '</th></tr>';
+    calendarHTML += '<tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr><tr>';
+
+    for (let i = 0; i < firstDay; i++) {
+      calendarHTML += '<td></td>';
+    }
+
+    let dayCount = firstDay;
+    for (let i = 1; i <= lastDate; i++) {
+      const isToday = i === today ? 'class="today"' : '';
+      calendarHTML += `<td ${isToday}>${i}</td>`;
+      dayCount++;
+
+      if (dayCount % 7 === 0 && i !== lastDate) calendarHTML += '</tr><tr>';
+    }
+
+    calendarHTML += '</tr></table>';
+    calendarEl.innerHTML = calendarHTML;
+  }
+
+  document.addEventListener("click", function(event) {
+    const calendar = document.getElementById("calendar");
+    const clock = document.getElementById("clock");
+    if (!calendar.contains(event.target) && !clock.contains(event.target)) {
+      calendar.style.display = "none";
+    }
+  });
+
+  window.addEventListener("message", (event) => {
+  const { type, windowId, filePath, name, icon } = event.data;
+
+  if (type === "add-to-dock") {
+    const dock = document.getElementById("dock");
+    if (!dock || document.getElementById(`dock-min-${windowId}`)) return;
+
+    const img = document.createElement("img");
+    img.src = icon || "default.jpg";
+    img.title = name || "App";
+    img.className = "dock-icon";
+    img.id = `dock-min-${windowId}`;
+
+    img.onclick = () => {
+      // Ask parent to restore the window
+      parent.postMessage({ type: "returnmin", windowId }, "*");
+      img.remove();
+    };
+
+    dock.appendChild(img);
+  }
+});
+
+window.addEventListener("message", (event) => {
+  const { type, windowId } = event.data;
+  if (type === "returnmin") {
+    returnmin([windowId]);
+  }
+});
+window.addEventListener("message", (e) => {
+  const data = e.data;
+
+  if (data.type === "fs-data") {
+    renderExplorer(data.fs, data.appMeta, data.path || "/");
+
+    // ✅ Re-apply background image
+    const currentUser = localStorage.getItem("currentUser") || "admin";
+    const bgImage = localStorage.getItem(`desktopBackground:${currentUser}`);
+    if (bgImage) {
+      document.body.style.backgroundImage = `url('${bgImage}')`;
+    }
+  }
+
+  if (data.type === "oos-navigate" && typeof data.path === "string") {
+    // Optional future use
+  }
+});
+
+
+
+const contextMenu = document.getElementById("desktop-context-menu");
+
+// Define context menu commands
+const contextOptions = [
+  { label: "📄 New File", command: "makefilegui" },
+  { label: "📁 New Folder", command: 'makefilegui' },
+    { label: "X Delete", command: 'makefilegui' },
+  { label: "🖥️ File Manager", command: "files" },
+  { label: "🔁 Refresh", command: "desktop" }
+];
+
+// Build menu
+contextOptions.forEach(({ label, command }) => {
+  const item = document.createElement("div");
+  item.textContent = label;
+  item.style.padding = "4px 10px";
+  item.style.cursor = "pointer";
+  item.style.borderRadius = "4px";
+  item.onmouseover = () => item.style.background = "#222";
+  item.onmouseout = () => item.style.background = "none";
+  item.onclick = () => {
+    parent.postMessage({ type: "terminal-input", command }, "*");
+    contextMenu.style.display = "none";
+  };
+  contextMenu.appendChild(item);
+});
+
+// 📍 Show menu on right-click anywhere on desktop
+document.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+  contextMenu.style.display = "flex";
+  contextMenu.style.top = `${e.clientY}px`;
+  contextMenu.style.left = `${e.clientX}px`;
+});
+
+// 🧼 Hide menu on click outside
+document.addEventListener("click", (e) => {
+  if (!contextMenu.contains(e.target)) {
+    contextMenu.style.display = "none";
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "m") {
+    contextMenu.style.display = "flex";
+    contextMenu.style.top = "40%";
+    contextMenu.style.left = "45%";
+  }
+});
+
+function renderDock(fs, appMeta) {
+    const dock = document.getElementById("dock");
+    dock.innerHTML = "";
+    const dockItems = fs["/dock"] || [];
+
+
+
+    // === User-added dock items ===
+    dockItems.forEach(name => {
+      const metaKey = Object.keys(appMeta).find(key => key.endsWith(`/${name}`));
+      const meta = appMeta[metaKey] || {};
+      const isApp = meta.type === "app" || name.endsWith(".oos");
+      const icon = meta.icon || (isApp ? 'link-icon.png' : 'default.jpg');
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "dock-icon-wrapper";
+      wrapper.id = `dock-wrapper-${name}`;
+
+      const img = document.createElement("img");
+      img.src = icon;
+      img.title = name;
+      img.className = "dock-icon";
+
+      const dot = document.createElement("div");
+      dot.className = "dock-indicator";
+
+      img.onclick = () => {
+        parent.postMessage({
+          type: "terminal-input",
+          command: `launch ${name}`
+        }, "*");
+
+        addToRecents(name);
+        wrapper.classList.add("active"); // dot on click
+      };
+
+      wrapper.appendChild(img);
+      wrapper.appendChild(dot);
+      dock.appendChild(wrapper);
+    });
+  }
+
+
+  function applyDockPosition(dockElementId = "dock") {
+    const dock = document.getElementById(dockElementId);
+    if (!dock) return;
+
+    function setDockPosition(side) {
+      dock.style.left = "";
+      dock.style.right = "";
+
+      if (side === "left") {
+        dock.style.left = "10px";
+      } else {
+        dock.style.right = "10px";
+      }
+    }
+
+    // Set initial position from localStorage
+    const savedSide = localStorage.getItem("dockSide") || "right";
+    setDockPosition(savedSide);
+
+    // Listen for updates from terminal
+    window.addEventListener("message", (e) => {
+      if (e.data.type === "dock-side-update") {
+        setDockPosition(e.data.value);
+      }
+    });
+  }
+  applyDockPosition("dock");
+  function applyDockVisibility(dockElementId = "dock") {
+    const dock = document.getElementById(dockElementId);
+    if (!dock) return;
+
+    const updateVisibility = (visible) => {
+      dock.style.display = visible ? "flex" : "none";
+    };
+
+    // Apply saved state
+    const isHidden = localStorage.getItem("dockHidden") === "true";
+    updateVisibility(!isHidden);
+
+    // Listen for visibility toggle
+    window.addEventListener("message", (e) => {
+      if (e.data.type === "dock-visibility") {
+        updateVisibility(e.data.value === "show");
+      }
+    });
+  }
+  applyDockVisibility();
+
+  // Listen for icon size updates (from `dockicon` command in terminal)
+window.addEventListener("message", (e) => {
+  if (e.data.type === "update-dock-icon-size") {
+    const size = parseInt(e.data.size);
+    if (!size || isNaN(size)) return;
+
+    let style = document.getElementById("dock-icon-size-style");
+    if (style) style.remove();
+
+    style = document.createElement("style");
+    style.id = "dock-icon-size-style";
+    style.textContent = `
+      .dock-icon {
+        width: ${size}px !important;
+        height: ${size}px !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+});
+
+
+
+function showDropdown(id) {
+  document.getElementById(id).style.display = "flex";
+}
+
+function hideDropdown(id) {
+  document.getElementById(id).style.display = "none";
+}
+
+function sendCommand(command) {
+  parent.postMessage({ type: "terminal-input", command }, "*");
+}
+
+
+
+
+</script>
+</body>
+</html>

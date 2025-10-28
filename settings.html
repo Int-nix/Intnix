@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Intnix Settings</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #e6f0f3, #ffffff);
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin: 20px 0;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .setting-item {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .setting-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .setting-item div:first-child {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .setting-item span {
+      display: block;
+      color: #333;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Settings</h1>
+
+  <div class="settings-grid">
+    <div class="setting-item" onclick="runCommand('chooseback')">
+      <div>🖼️</div>
+      <span>Background</span>
+    </div>
+
+    <div class="setting-item" onclick="runCommand('guipass')">
+      <div>🔐</div>
+      <span>Set Password</span>
+    </div>
+
+    <div class="setting-item" onclick="runCommand('dockmenu')">
+      <div>👤</div>
+      <span>dock menu</span>
+    </div>
+
+
+
+    <div class="setting-item" onclick="runCommand('finder')">
+      <div>💻</div>
+      <span>This PC</span>
+    </div>
+
+
+  <script>
+    function runCommand(command) {
+      const key = "globalBridgeQueue";
+      let queue = [];
+
+      try {
+        queue = JSON.parse(localStorage.getItem(key) || "[]");
+      } catch (e) {
+        console.error("⚠️ Invalid globalBridgeQueue format. Resetting.");
+      }
+
+      queue.push(command);
+      localStorage.setItem(key, JSON.stringify(queue));
+    }
+  </script>
+
+</body>
+</html>

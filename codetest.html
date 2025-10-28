@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Text Editor & Runner</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/edit/matchbrackets.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .container { display: flex; height: 100vh; flex-direction: column; }
+        .top-bar { padding: 10px; text-align: center; background: #1e1e1e; }
+        .tab-container { display: flex; padding: 5px; background: #ddd; }
+        .tab { padding: 5px 10px; margin: 2px; cursor: pointer; background: #bbb; border-radius: 5px; }
+        .tab.active { background: #888; color: white; }
+        .editor-output { display: flex; flex: 1; }
+        .editor-container { flex: 4; background:#1e1e1e }
+        .output-container {
+            position: absolute;
+            top: 14%;
+            right: 10px;
+            width: 30%;
+            height: 40%;
+            border: 1px solid #ddd;
+            background: #2e3440;
+            overflow: hidden;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        }
+button {
+    background-color: #333; /* Dark gray button */
+    color: #fff; /* White text */
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+button:hover {
+    background-color: #444; /* Slightly lighter on hover */
+    transform: scale(1.05);
+}
+
+button:active {
+    background-color: #555;
+    transform: scale(0.98);
+}
+
+       .CodeMirror {
+	   font-weight: bold !important;
+	   height:100%;
+    background: #1e1e1e !important; /* Dark theme */
+    color: #ffffff !important; /* White text */
+}
+.CodeMirror-cursor {
+    border-left: 2px solid #ffffff !important; /* White cursor */
+    animation: blink 1s step-start infinite;
+}
+
+@keyframes blink {
+    5% {
+        opacity: 0;
+    }
+}
+
+
+        iframe { width: 100%; height: 100%; border: none; }
+        .resizer { width: 5px; cursor: ew-resize; background: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <button onclick="runCode()">Run Code</button>
+            <button onclick="downloadCode()">Download Code</button>
+            <button onclick="openFile()">Open File</button>
+            <button onclick="addTextTab()">Add Text</button> <!-- New Button -->
+            <button onclick="stopCode()">Stop Code</button> <!-- New Button -->
+<label>
+    <input type="checkbox" id="toggleScroll" checked> Enable Scrolling
+</label>
+
+        </div>
+        <div class="tab-container" id="tabs"></div>
+        <div class="editor-output">
+            <div class="editor-container" id="editor-container"></div>
+            <div class="resizer" id="resizer"></div>
+            <div class="output-container">
+                <iframe id="output"></iframe>
+            </div>
+        </div>
+    </div>
+    <script>
+        var editors = {};
+        var currentTab = null;
+        var tabContainer = document.getElementById("tabs");
+        var editorContainer = document.getElementById("editor-container");
+        var newDocCount = 1;
+
+function createTab(fileName, content) {
+    if (editors[fileName]) {
+        switchTab(fileName);
+        return;
+    }
+
+    var tab = document.createElement("div");
+    tab.className = "tab";
+
+    var tabText = document.createElement("span");
+    tabText.textContent = fileName;
+    tabText.onclick = function () { switchTab(fileName); };
+
+    var deleteButton = document.createElement("button");
+    deleteButton.textContent = "x";
+    deleteButton.style.marginLeft = "5px";
+    deleteButton.onclick = function (event) {
+        event.stopPropagation();
+        deleteTab(fileName, tab);
+    };
+
+    tab.appendChild(tabText);
+    tab.appendChild(deleteButton);
+    tabContainer.appendChild(tab);
+
+    // 🔥 Always use JavaScript syntax highlighting
+    var newEditor = CodeMirror(editorContainer, {
+      mode: fileName.endsWith(".html") ? "htmlmixed" : "javascript",
+
+        theme: "default",
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        value: content
+    });
+
+    editors[fileName] = newEditor;
+    switchTab(fileName);
+}
+
+function disablePageScroll() {
+    document.body.style.overflow = "hidden"; // Fully disables scrolling
+    document.documentElement.style.overflow = "hidden";
+}
+
+function enablePageScroll() {
+    document.body.style.overflow = "auto"; // Enables scrolling
+    document.documentElement.style.overflow = "auto";
+}
+
+// Toggle scrolling when the checkbox is changed
+document.getElementById("toggleScroll").addEventListener("change", function () {
+    if (this.checked) {
+        enablePageScroll();
+    } else {
+        disablePageScroll();
+    }
+});
+
+// Prevent arrow key scrolling on the page, but allow inside editor & iframe
+document.addEventListener("keydown", function (event) {
+    var scrollCheckbox = document.getElementById("toggleScroll");
+
+    // Allow scrolling inside CodeMirror
+    if (document.activeElement.closest(".CodeMirror")) {
+        return;
+    }
+
+    // Allow scrolling inside iframe
+    let iframe = document.getElementById("output");
+    if (iframe && iframe.contentWindow && iframe.contentDocument) {
+        let iframeBody = iframe.contentDocument.body;
+        if (iframeBody.contains(document.activeElement)) {
+            return;
+        }
+    }
+
+    // Block page scrolling when checkbox is unchecked
+    if (!scrollCheckbox.checked) {
+        if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key)) {
+            event.preventDefault();
+        }
+    }
+});
+
+// Disable page scrolling initially if the checkbox is unchecked
+if (!document.getElementById("toggleScroll").checked) {
+    disablePageScroll();
+}
+
+
+        function deleteTab(fileName, tabElement) {
+            delete editors[fileName];
+            tabContainer.removeChild(tabElement);
+
+            if (currentTab === fileName) {
+                let remainingTabs = Object.keys(editors);
+                if (remainingTabs.length > 0) {
+                    switchTab(remainingTabs[0]);
+                } else {
+                    editorContainer.innerHTML = "";
+                    currentTab = null;
+                }
+            }
+        }
+
+  function switchTab(fileName) {
+    if (!editors[fileName]) return;
+
+    if (currentTab) {
+        document.querySelectorAll(".tab").forEach(tab => tab.classList.remove("active"));
+    }
+
+    currentTab = fileName;
+    document.querySelectorAll(".tab").forEach(tab => {
+        if (tab.textContent.startsWith(fileName)) tab.classList.add("active");
+    });
+
+    editorContainer.innerHTML = "";
+    editorContainer.appendChild(editors[fileName].getWrapperElement());
+
+    // 🔥 Force the editor to refresh after switching tabs
+    setTimeout(() => {
+        editors[fileName].refresh();
+    }, 10);
+}
+
+document.addEventListener("wheel", function (event) {
+    if (document.activeElement.classList.contains("CodeMirror")) {
+        event.preventDefault();
+    }
+}, { passive: false });
+
+
+
+        function downloadCode() {
+            if (!currentTab) return;
+            var code = editors[currentTab].getValue();
+            var fileName = prompt("Enter file name (with .html or .js extension):", currentTab);
+            if (!fileName) return;
+
+            var blob = new Blob([code], { type: fileName.endsWith(".js") ? "text/javascript" : "text/html" });
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+function openFile() {
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".html,.js,.css"; // Allow all relevant file types
+    input.onchange = function(event) {
+        var file = event.target.files[0];
+        if (!file) return;
+
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var content = e.target.result;
+            createTab(file.name, content); // Just open the file, no prompts
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+    function createConsoleBox(width = "40%", height = "30%", position = "bottom-right") {
+            const consoleBox = document.createElement("div");
+            consoleBox.style.width = width;
+            consoleBox.style.height = height;
+            consoleBox.style.backgroundColor = "#222";
+            consoleBox.style.border = "1px solid #444";
+            consoleBox.style.padding = "10px";
+            consoleBox.style.overflowY = "auto";
+            consoleBox.style.whiteSpace = "pre-wrap";
+            consoleBox.style.fontFamily = "monospace";
+            consoleBox.style.color = "white";
+            consoleBox.style.position = "fixed";
+            consoleBox.style.zIndex = "1000";
+
+            switch (position) {
+                case "top-left":
+                    consoleBox.style.top = "10px";
+                    consoleBox.style.left = "10px";
+                    break;
+                case "top-right":
+                    consoleBox.style.top = "10px";
+                    consoleBox.style.right = "10px";
+                    break;
+                case "bottom-left":
+                    consoleBox.style.bottom = "10px";
+                    consoleBox.style.left = "10px";
+                    break;
+                case "bottom-right":
+                default:
+                    consoleBox.style.bottom = "10px";
+                    consoleBox.style.right = "10px";
+                    break;
+            }
+
+            document.body.appendChild(consoleBox);
+
+            const originalConsoleLog = console.log;
+            console.log = function(...args) {
+                originalConsoleLog.apply(console, args);
+                const logMessage = document.createElement("div");
+                logMessage.textContent = args.join(" ");
+                consoleBox.appendChild(logMessage);
+                consoleBox.scrollTop = consoleBox.scrollHeight;
+            };
+        }
+
+        // Initialize console box
+        createConsoleBox();
+
+    function stopCode() {
+    var outputContainer = document.querySelector(".output-container");
+    outputContainer.innerHTML = ""; // Clear iframe container
+
+    var newIframe = document.createElement("iframe");
+    newIframe.id = "output";
+    newIframe.style.width = "100%";
+    newIframe.style.height = "100%";
+    newIframe.style.border = "none";
+
+    outputContainer.appendChild(newIframe);
+}
+
+function runCode() {
+    if (!currentTab) return;
+    stopCode(); // Reset the iframe before running new code
+
+    var code = editors[currentTab].getValue().trim(); // Get editor content and trim whitespace
+    localStorage.setItem("savedCode", JSON.stringify({ fileName: currentTab, content: code }));
+
+    var outputFrame = document.getElementById("output");
+    var outputDoc = outputFrame.contentWindow.document;
+
+    // Check if the file has <!DOCTYPE html> at the start
+    var isHTML = code.toLowerCase().startsWith("<!doctype html") || code.toLowerCase().startsWith("<html");
+
+    if (isHTML) {
+        // Running an HTML file
+        outputDoc.open();
+        outputDoc.write(code);
+        outputDoc.close();
+    } else {
+        // Running a JavaScript file
+        outputDoc.open();
+        outputDoc.write(`
+            <script>
+                (function() {
+                    const originalLog = console.log;
+                    console.log = function(...args) {
+                        originalLog.apply(console, args);
+                        parent.postMessage({ type: 'console-log', message: args.join(' ') }, '*');
+                    };
+                    window.onerror = function(message, source, lineno, colno, error) {
+                        parent.postMessage({ type: 'console-error', message: message + ' (Line: ' + lineno + ', Column: ' + colno + ')' }, '*');
+                    };
+                })();
+            <\/script>
+            <script>
+                try {
+                    ${code}
+                } catch (e) {
+                    console.error(e);
+                }
+            <\/script>
+        `);
+        outputDoc.close();
+    }
+}
+
+
+window.addEventListener("message", function(event) {
+    if (event.data.type === "console-log") {
+        console.log(event.data.message);
+    } else if (event.data.type === "console-error") {
+        console.error(event.data.message);
+    }
+});
+
+        function addTextTab() {
+            createTab("New Document #" + newDocCount, "");
+            newDocCount++;
+        }
+		 // ✅ Resize handler
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        window.addEventListener("message", (event) => {
+            const { type, fileName, content } = event.data || {};
+            if (type === "loadFromLauncher" && fileName && content !== undefined) {
+                createTab(fileName, content);
+            }
+        });
+        window.addEventListener("load", () => {
+            addTextTab(); // Automatically create a blank tab on load
+        });
+
+    </script>
+</body>
+</html>

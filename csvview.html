@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CSV Viewer</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9fbfc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .drop-zone {
+      border: 3px dashed #00aaff;
+      background: #e9f7ff;
+      padding: 40px;
+      text-align: center;
+      border-radius: 12px;
+      width: 80%;
+      max-width: 600px;
+      margin-bottom: 30px;
+      color: #0088cc;
+      font-weight: 500;
+    }
+
+    .drop-zone.dragover {
+      background: #d0f0ff;
+      border-color: #0088cc;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 1000px;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    th {
+      background: #00aaff;
+      color: white;
+      font-weight: bold;
+    }
+
+    td {
+      background: #fdfdfd;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>CSV Viewer</h1>
+  <div class="drop-zone" id="dropZone">
+    Drop your CSV file here or click to select.
+    <input type="file" id="fileInput" accept=".csv" style="display: none;">
+  </div>
+
+  <div id="output"></div>
+
+  <script>
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const output = document.getElementById("output");
+
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    dropZone.addEventListener("dragover", e => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("dragover");
+    });
+
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      handleFile(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    });
+
+    function handleFile(file) {
+      if (!file.name.endsWith(".csv")) {
+        alert("Please upload a valid CSV file.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const rows = reader.result.split("\n").map(row => row.split(","));
+        displayTable(rows);
+      };
+      reader.readAsText(file);
+    }
+
+    function displayTable(data) {
+      const table = document.createElement("table");
+
+      data.forEach((row, rowIndex) => {
+        const tr = document.createElement("tr");
+        row.forEach(cell => {
+          const td = document.createElement(rowIndex === 0 ? "th" : "td");
+          td.textContent = cell.trim();
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
+
+      output.innerHTML = "";
+      output.appendChild(table);
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Prism CSS Theme -->
+<link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+
+<!-- Prism Core + JS language -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+
+  <meta charset="UTF-8" />
+  <title>NebulaCode Editor</title>
+  <style>
+  body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0a0a0f;
+  font-family: 'Fira Code', monospace;
+  color: #e0e0e0;
+}
+
+.element-0 {
+  position: absolute;
+  top: 14%;
+  left: 36%;
+  width: 60%;
+  height: 83%;
+  background: #11111a;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(120, 100, 255, 0.2);
+  overflow: hidden;
+}
+
+.code-container {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+#lineNumbers {
+  width: 40px;
+  padding: 14px 6px 14px 0;
+  background: #161622;
+  color: #888;
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: right;
+  white-space: pre;
+  user-select: none;
+  overflow: hidden;
+}
+
+#editor {
+  flex: 1;
+  padding: 14px;
+  background: #1e1e1e;
+  color: #fff;
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  outline: none;
+}
+
+
+
+#highlighted {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  padding: 14px;
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: auto;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#highlighted code {
+  display: block;
+}
+
+
+
+
+
+.element-1 {
+  position: absolute;
+  top: 14%;
+  left: 1%;
+  width: 33%;
+  height: 83%;
+  background: #12121c;
+  border-radius: 12px;
+  overflow-y: auto;
+  padding: 12px;
+  box-shadow: 0 0 12px rgba(100, 255, 240, 0.15);
+}
+
+.element-2 {
+  position: absolute;
+  top: 10%;
+  left: 16%;
+  width: 60%;
+  height: 3.5%;
+  background: transparent;
+  color: #9fdfff;
+  font-size: 13px;
+  font-weight: 500;
+  padding-left: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.element-3 {
+  position: absolute;
+  top: 4%;
+  left: 36%;
+  width: auto;
+  padding: 8px 16px;
+  background: #202036;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: bold;
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(120, 100, 255, 0.4);
+}
+
+.element-4 {
+  position: absolute;
+  top: 4%;
+  left: 54%;
+  display: flex;
+  gap: 12px;
+}
+
+textarea {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  color: #e0e0e0;
+  border: none;
+  outline: none;
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+  padding: 14px;
+  box-sizing: border-box;
+  line-height: 1.5;
+}
+
+.file, .folder {
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.file {
+  background: #1a1a26;
+  color: #d0d0d0;
+}
+
+.file:hover {
+  background: #2a2a3d;
+  color: #7dfcff;
+}
+
+.folder {
+  background: #161622;
+  color: #89bbff;
+  font-weight: bold;
+}
+
+.folder:hover {
+  background: #25253a;
+  color: #c0eaff;
+}
+
+.folder-contents {
+  margin-left: 16px;
+  display: none;
+}
+
+button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #14142a;
+  color: #9fdfff;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(140, 220, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background: #9fdfff;
+  color: #0a0a0f;
+  box-shadow: 0 0 10px rgba(159, 223, 255, 0.6);
+}
+
+  </style>
+
+  <div class="element-2" id="filepath">No file loaded</div>
+  <div class="element-3">Intnix Code editor</div>
+  <div class="element-4">
+      <button onclick="createFile()">📄 Create File</button>
+          <button onclick="refreshPage()">🔄 Refresh Page</button>
+    <button onclick="saveFile()">💾 Save</button>
+    <button onclick="launchFile()">🚀 Launch</button>
+  </div>
+
+</head>
+<body>
+
+<div class="element-1" id="sidebar"></div>
+<div class="element-0">
+  <div class="code-container">
+    <div id="lineNumbers" class="line-numbers"></div>
+    <div id="editor" contenteditable="true" spellcheck="false"></div>
+
+  </div>
+
+
+
+<script>
+// =========================
+// NebulaCode Editor (Basic, Modular, Fixed Enter)
+// =========================
+
+// -- Global References --
+const editor = document.getElementById("editor");
+const sidebar = document.getElementById("sidebar");
+const filepath = document.getElementById("filepath");
+const lineNumbers = document.getElementById("lineNumbers");
+
+let currentFilePath = null;
+const currentUser = localStorage.getItem("currentUser") || "admin";
+const fileSystem = JSON.parse(localStorage.getItem("userFileSystems") || "{}")[currentUser] || {};
+
+// -- Entry Point --
+init();
+
+function init() {
+  listFiles(fileSystem);
+  setupEditor();
+  startRefreshLoop();
+  window.addEventListener("message", handleMessage);
+}
+
+// -- File Management --
+function listFiles(fs, dir = "/", container = sidebar) {
+  const items = fs[dir] || [];
+  items.forEach(item => {
+    const path = dir === "/" ? `/${item}` : `${dir}/${item}`;
+    const isFolder = !!fs[path];
+
+    if (isFolder) createFolderElement(item, path, fs, container);
+    else createFileElement(item, path, container);
+  });
+}
+
+function createFolderElement(name, path, fs, container) {
+  const excludedFolders = ["apps"]; // Add any folder names you want to skip
+
+  if (excludedFolders.includes(name)) return; // ❌ Skip rendering this folder
+
+  const folderDiv = document.createElement("div");
+  folderDiv.className = "folder";
+  folderDiv.textContent = `📁 ${name}`;
+
+  const contentsDiv = document.createElement("div");
+  contentsDiv.className = "folder-contents";
+
+  folderDiv.onclick = () => {
+    const visible = contentsDiv.style.display === "block";
+    contentsDiv.style.display = visible ? "none" : "block";
+    folderDiv.textContent = `${visible ? "📁" : "📂"} ${name}`;
+  };
+
+  container.appendChild(folderDiv);
+  container.appendChild(contentsDiv);
+
+  listFiles(fs, path, contentsDiv);
+}
+
+
+function createFileElement(name, path, container) {
+  const fileDiv = document.createElement("div");
+  fileDiv.className = "file";
+  fileDiv.textContent = name;
+  fileDiv.onclick = () => loadFile(path);
+  container.appendChild(fileDiv);
+}
+
+function loadFile(path) {
+  const content = localStorage.getItem("fileContent:" + path);
+  if (content !== null) {
+    const lines = content.split("\n").map(line => `<div>${line || "<br>"}</div>`).join("");
+    editor.innerHTML = lines;
+    filepath.textContent = path;
+    currentFilePath = path;
+    renderLineNumbers();
+  } else {
+    editor.innerHTML = "<div><br></div>";
+    filepath.textContent = "❌ File not found";
+    currentFilePath = null;
+    renderLineNumbers();
+  }
+}
+
+function saveFile() {
+  if (!currentFilePath) return alert("❌ No file selected.");
+  const lines = Array.from(editor.querySelectorAll("div")).map(div => div.textContent);
+  const plainText = lines.join("\n");
+  localStorage.setItem("fileContent:" + currentFilePath, plainText);
+  alert(`✅ Saved ${currentFilePath}`);
+}
+
+function launchFile() {
+  if (!currentFilePath) return alert("❌ No file selected.");
+  let filename = currentFilePath.split("/").pop();
+  if (filename.endsWith(".oos")) filename += ".app";
+  localStorage.setItem("livebridge", JSON.stringify([`htmlnano ${currentFilePath}`]));
+}
+
+function createFile(filename) {
+  localStorage.setItem("livebridge", JSON.stringify([`makefilegui`]));
+  startRefreshLoop();
+}
+
+function refreshPage() {
+  location.reload();
+}
+
+function handleMessage(e) {
+  const { type, path } = e.data;
+  if (type === "loadfile" && typeof path === "string") loadFile(path);
+}
+
+// -- Editor Setup --
+function setupEditor() {
+  editor.addEventListener("keydown", e => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      insertTextAtCursor("  ");
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      insertLineBreak();
+    }
+  });
+
+  editor.addEventListener("input", renderLineNumbers);
+  editor.addEventListener("scroll", () => {
+    lineNumbers.scrollTop = editor.scrollTop;
+  });
+
+  renderLineNumbers();
+}
+
+function insertTextAtCursor(text) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  const textNode = document.createTextNode(text);
+  range.insertNode(textNode);
+
+  range.setStartAfter(textNode);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  renderLineNumbers();
+}
+
+function insertLineBreak() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+
+  const div = document.createElement("div");
+  const br = document.createElement("br");
+  div.appendChild(br);
+  range.insertNode(div);
+
+  const newRange = document.createRange();
+  newRange.setStart(div, 1);
+  newRange.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(newRange);
+
+  renderLineNumbers();
+}
+
+function renderLineNumbers() {
+  if (!lineNumbers) return;
+  const lines = editor.querySelectorAll("div").length || 1;
+  lineNumbers.innerText = Array.from({ length: lines }, (_, i) => i + 1).join("\n");
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Paint</title>
+  <style>
+    :root {
+      --toolbar-bg: #f5f5f5;
+      --toolbar-border: #ddd;
+      --button-bg: #fff;
+      --button-active-bg: #e0e0e0;
+      --button-hover-bg: #f0f0f0;
+      --primary-color: #333;
+      --shadow: rgba(0, 0, 0, 0.05);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      color: var(--primary-color);
+    }
+    #toolbar {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      background: var(--toolbar-bg);
+      border-bottom: 1px solid var(--toolbar-border);
+      box-shadow: 0 2px 4px var(--shadow);
+    }
+    .tool-group { display: flex; align-items: center; margin-right: 1.5rem; }
+    .tool-button {
+      background: var(--button-bg);
+      border: 1px solid var(--toolbar-border);
+      padding: 0.3rem 0.6rem;
+      margin-right: 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 1rem;
+      display: flex; align-items: center;
+    }
+    .tool-button:hover { background: var(--button-hover-bg); }
+    .tool-button.active { background: var(--button-active-bg); border-color: var(--primary-color); }
+    #canvas { flex: 1; cursor: crosshair; display: block; }
+    input[type="range"], input[type="number"], select { margin-left: 0.5rem; }
+    label { font-size: 0.9rem; margin-left: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <div class="tool-group">
+      <input type="color" id="colorPicker" value="#000000" title="Select Color">
+      <label for="sizePicker">Brush Size</label>
+      <input type="range" id="sizePicker" min="1" max="50" value="5">
+      <label for="fontSizePicker">Font Size</label>
+      <input type="number" id="fontSizePicker" min="8" max="72" value="20" style="width:4ch;">
+      <label for="fontFamilyPicker">Font</label>
+      <select id="fontFamilyPicker">
+        <option value="Segoe UI">Segoe UI</option>
+        <option value="Arial">Arial</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+      </select>
+    </div>
+    <div class="tool-group">
+      <button class="tool-button active" id="pencil" title="Pencil">✏️</button>
+      <button class="tool-button" id="line" title="Line">📏</button>
+      <button class="tool-button" id="rect" title="Rectangle">⬛</button>
+      <button class="tool-button" id="circle" title="Circle">⚪</button>
+      <button class="tool-button" id="eraser" title="Eraser">🧽</button>
+      <button class="tool-button" id="fill" title="Fill">🪣</button>
+      <button class="tool-button" id="move" title="Move">🖐️</button>
+      <button class="tool-button" id="text" title="Text">🅰️</button>
+    </div>
+    <div class="tool-group">
+      <button class="tool-button" id="clear" title="Clear Canvas">🗑️</button>
+      <button class="tool-button" id="save" title="Save as PNG">💾</button>
+    </div>
+  </div>
+  <canvas id="canvas"></canvas>
+  <script>
+  (() => {
+    const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+    const colorPicker = document.getElementById('colorPicker');
+    const sizePicker = document.getElementById('sizePicker');
+    const fontSizePicker = document.getElementById('fontSizePicker');
+    const fontFamilyPicker = document.getElementById('fontFamilyPicker');
+    let currentTool = 'pencil', drawing = false;
+    let startX=0, startY=0, snapshot=null;
+    let selection=null, selImage=null, selecting=false;
+    let moving=false, moveOffset={x:0,y:0};
+    const toolbarH=document.getElementById('toolbar').offsetHeight;
+    const resize=()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight-toolbarH;};
+    window.addEventListener('resize',resize); resize();
+    document.querySelectorAll('.tool-button').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.tool-button').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active'); currentTool=btn.id;
+        selecting=false; moving=false; selection=null;
+      });
+    });
+    const pos=e=>({x:e.offsetX,y:e.offsetY});
+    canvas.addEventListener('mousedown',e=>{
+      const {x,y}=pos(e);
+      if(currentTool==='text'){ createInput(x,y); return; }
+      drawing=true; startX=x; startY=y;
+      if(currentTool==='fill'){ flood(x,y); drawing=false; }
+      else if(['line','rect','circle'].includes(currentTool)) snapshot=ctx.getImageData(0,0,canvas.width,canvas.height);
+      else if(currentTool==='move'){
+        if(!selection){ selecting=true; snapshot=ctx.getImageData(0,0,canvas.width,canvas.height); }
+        else{ moving=true; moveOffset.x=x-selection.x; moveOffset.y=y-selection.y; }
+      }
+    });
+    canvas.addEventListener('mousemove',e=>{
+      if(!drawing) return; const {x,y}=pos(e);
+      if(['pencil','eraser'].includes(currentTool)){
+        ctx.beginPath(); ctx.moveTo(startX,startY); ctx.lineTo(x,y);
+        ctx.strokeStyle=currentTool==='eraser'?'#fff':colorPicker.value;
+        ctx.lineWidth=sizePicker.value; ctx.lineCap='round'; ctx.stroke();
+        startX=x; startY=y;
+      } else if(['line','rect','circle'].includes(currentTool)){
+        ctx.putImageData(snapshot,0,0); drawShape(startX,startY,x,y);
+      } else if(currentTool==='move'){
+        ctx.putImageData(snapshot,0,0);
+        if(selecting){ drawSel(startX,startY,x,y); }
+        else if(moving){ ctx.putImageData(selImage,x-moveOffset.x,y-moveOffset.y); }
+      }
+    });
+    canvas.addEventListener('mouseup',e=>{
+      if(!drawing) return; const {x,y}=pos(e);
+      if(['line','rect','circle'].includes(currentTool)){
+        ctx.putImageData(snapshot,0,0); drawShape(startX,startY,x,y,true); snapshot=null;
+      } else if(currentTool==='move'){
+        if(selecting){ selection=normalize(startX,startY,x,y);
+          selImage=ctx.getImageData(selection.x,selection.y,selection.w,selection.h);
+          ctx.putImageData(snapshot,0,0);
+          ctx.clearRect(selection.x,selection.y,selection.w,selection.h);
+          selecting=false;
+        } else if(moving){ ctx.putImageData(snapshot,0,0);
+          ctx.putImageData(selImage,x-moveOffset.x,y-moveOffset.y);
+          selection.x=x-moveOffset.x; selection.y=y-moveOffset.y;
+          snapshot=ctx.getImageData(0,0,canvas.width,canvas.height);
+          moving=false;
+        }
+      }
+      drawing=false;
+    });
+    document.getElementById('clear').addEventListener('click',()=>ctx.clearRect(0,0,canvas.width,canvas.height));
+    document.getElementById('save').addEventListener('click',()=>{
+      const a=document.createElement('a'); a.download='drawing.png'; a.href=canvas.toDataURL(); a.click();
+    });
+    function drawShape(x1,y1,x2,y2,commit){ ctx.beginPath(); ctx.strokeStyle=colorPicker.value; ctx.lineWidth=sizePicker.value;
+      if(currentTool==='line'){ ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
+      if(currentTool==='rect'){ ctx.rect(x1,y1,x2-x1,y2-y1); }
+      if(currentTool==='circle'){ const r=Math.hypot(x2-x1,y2-y1); ctx.arc(x1,y1,r,0,2*Math.PI); }
+      ctx.stroke(); }
+    function drawSel(x1,y1,x2,y2){ const r=normalize(x1,y1,x2,y2);
+      ctx.setLineDash([6]); ctx.strokeStyle='#666'; ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.setLineDash([]);
+    }
+    function normalize(x1,y1,x2,y2){ const x=Math.min(x1,x2), y=Math.min(y1,y2);
+      return {x,y,w:Math.abs(x2-x1),h:Math.abs(y2-y1)}; }
+    function createInput(x,y){ const inp=document.createElement('input'); inp.type='text';
+      inp.style.position='absolute'; inp.style.left=`${x}px`; inp.style.top=`${y+toolbarH}px`;
+      inp.style.font=`${fontSizePicker.value}px ${fontFamilyPicker.value}`;
+      document.body.appendChild(inp); inp.focus();
+      inp.addEventListener('keydown',e=>{ if(e.key==='Enter') inp.blur(); });
+      inp.addEventListener('blur',()=>{ const t=inp.value;
+        if(t){ ctx.font=`${fontSizePicker.value}px ${fontFamilyPicker.value}`; ctx.fillStyle=colorPicker.value;
+          ctx.fillText(t,x,y);
+        }
+        document.body.removeChild(inp);
+      }); }
+    function flood(x,y){ const img=ctx.getImageData(0,0,canvas.width,canvas.height),px=img.data,w=img.width;
+      const i=(y*w+x)*4,base=px.slice(i,i+4).join(','),fc=hexToRGBA(colorPicker.value);
+      if(base===`${fc.r},${fc.g},${fc.b},255`) return; const s=[[x,y]];
+      while(s.length){ const [cx,cy]=s.pop(),j=(cy*w+cx)*4;
+        if(px.slice(j,j+4).join(',')!==base) continue;
+        px[j]=fc.r;px[j+1]=fc.g;px[j+2]=fc.b;px[j+3]=255;
+        if(cx>0) s.push([cx-1,cy]); if(cx<w-1) s.push([cx+1,cy]);
+        if(cy>0) s.push([cx,cy-1]); if(cy<img.height-1) s.push([cx,cy+1]);
+      }
+      ctx.putImageData(img,0,0);
+    }
+    function hexToRGBA(h){ return {r:parseInt(h.slice(1,3),16),g:parseInt(h.slice(3,5),16),b:parseInt(h.slice(5,7),16),a:255}; }
+  })();
+  </script>
+</body>
+</html>

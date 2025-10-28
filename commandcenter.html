@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Command Center</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #f0f4f8, #ffffff);
+      margin: 0;
+      padding-top: 60px;
+    }
+
+    .command-input {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-family: monospace;
+      border: none;
+      outline: none;
+      background: rgba(255, 255, 255, 0.9);
+      border-bottom: 1px solid #ccc;
+      z-index: 1000;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-top: 20px;
+    }
+
+    .command-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .command-item {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .command-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .command-item div:first-child {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .command-item span {
+      display: block;
+      color: #333;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <input
+    class="command-input"
+    type="text"
+    autofocus
+    placeholder="Type a command (e.g., echo Hello World) and press Enter"
+    onkeydown="if(event.key === 'Enter') { runCommand(this.value); this.value=''; }"
+  >
+
+  <h1>Command Center</h1>
+
+  <div class="command-grid">
+    <div class="command-item" onclick="runCommand('launchhtml')">
+      <div>🗯️</div>
+      <span>launchhtml</span>
+    </div>
+
+
+    <div class="command-item" onclick="runCommand('settings')">
+      <div>⚙️</div>
+      <span>Settings</span>
+    </div>
+    <div class="command-item" onclick="runCommand('clear')">
+      <div>🧹</div>
+      <span>Clear</span>
+    </div>
+
+    <div class="command-item" onclick="runCommand('quicknote')">
+      <div>🗒️</div>
+      <span>Sticky Note</span>
+    </div>
+
+    <div class="command-item" onclick="runCommand('scan')">
+      <div>🖨️</div>
+      <span>Scan System</span>
+    </div>
+
+
+    <div class="command-item" onclick="runCommand('makefilegui')">
+      <div>📁</div>
+      <span>Make Folder</span>
+    </div>
+
+    <div class="command-item" onclick="runCommand('makefilegui')">
+      <div>📄</div>
+      <span>Make file</span>
+    </div>
+
+
+    <div class="command-item" onclick="runCommand('files')">
+      <div>🗂️</div>
+      <span>File Manager</span>
+    </div>
+
+    <div class="command-item" onclick="runCommand('windowterminal')">
+      <div>💻</div>
+      <span>Terminal</span>
+    </div>
+
+    <div class="command-item" onclick="runCommand('signout')">
+      <div>🔏</div>
+      <span>Sign Out</span>
+    </div>
+
+    <div class="command-item" onclick="runCommand('shutdown')">
+      <div>🧰</div>
+      <span>Shut down</span>
+    </div>
+
+    <div class="command-item" onclick="runCommand('screenrecord')">
+      <div>🎥</div>
+      <span>Record screen</span>
+    </div>
+
+    <div class="command-item" onclick="runCommand('hideaerodock')">
+      <div>🫣</div>
+      <span>Hide Aero Dock</span>
+    </div>
+
+    <div class="command-item" onclick="runCommand('aerodock')">
+      <div>📺</div>
+      <span>Aero Dock</span>
+    </div>
+
+
+    <div class="command-item" onclick="runCommand('man')">
+      <div>📖</div>
+      <span>Manual</span>
+    </div>
+
+    <div class="command-item" onclick="runCommand('appdownload')">
+      <div>📦</div>
+      <span>Package Manager (Appstore)</span>
+    </div>
+  </div>
+
+  <script>
+    function runCommand(command) {
+      const key = "globalBridgeQueue";
+      let queue = [];
+
+      try {
+        queue = JSON.parse(localStorage.getItem(key) || "[]");
+      } catch (e) {
+        console.error("⚠️ Invalid globalBridgeQueue format. Resetting.");
+      }
+
+      queue.push(command);
+      localStorage.setItem(key, JSON.stringify(queue));
+    }
+  </script>
+
+</body>
+</html>

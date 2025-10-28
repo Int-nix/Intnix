@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sheet</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f5f8;
+      overflow: hidden;
+    }
+
+    .toolbar {
+      background: #ffffff;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #ccc;
+      gap: 10px;
+    }
+
+    .btn {
+      background: #0b57d0;
+      color: white;
+      padding: 6px 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn:hover {
+      background: #0a47b8;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    #sheetContainer {
+      height: calc(100% - 50px);
+      overflow: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #d0d0d0;
+      padding: 8px;
+      min-width: 100px;
+      max-width: 400px;
+      background: white;
+      color: #333;
+      outline: none;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f0f0f0;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    td:focus {
+      background: #e6f0ff;
+    }
+
+    tr:nth-child(even) td {
+      background: #fafafa;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <label class="btn" for="csvInput">📁 Upload</label>
+    <input type="file" id="csvInput" accept=".csv" />
+    <button class="btn" onclick="downloadCSV()">💾 Export</button>
+  </div>
+
+  <div id="sheetContainer"></div>
+
+  <script>
+    const container = document.getElementById("sheetContainer");
+    const input = document.getElementById("csvInput");
+
+    input.addEventListener("change", () => {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const lines = e.target.result.split("\n").map(l => l.trim());
+        renderTable(lines.map(line => line.split(",")));
+      };
+      reader.readAsText(file);
+    });
+
+    function renderTable(data = []) {
+      const table = document.createElement("table");
+
+      const numRows = Math.max(data.length || 0, 20);
+      const numCols = Math.max((data[0]?.length || 0), 10);
+
+      for (let i = 0; i <= numRows; i++) {
+        const tr = document.createElement("tr");
+        for (let j = 0; j <= numCols; j++) {
+          let cell;
+          if (i === 0 && j === 0) {
+            cell = document.createElement("th");
+            cell.textContent = "";
+          } else if (i === 0) {
+            cell = document.createElement("th");
+            cell.textContent = String.fromCharCode(64 + j);
+          } else if (j === 0) {
+            cell = document.createElement("th");
+            cell.textContent = i;
+          } else {
+            cell = document.createElement("td");
+            cell.contentEditable = true;
+            cell.textContent = data[i - 1]?.[j - 1] || "";
+            cell.addEventListener("input", () => maybeExpand(table));
+          }
+          tr.appendChild(cell);
+        }
+        table.appendChild(tr);
+      }
+
+      container.innerHTML = "";
+      container.appendChild(table);
+    }
+
+    function maybeExpand(table) {
+      const rows = table.rows.length;
+      const cols = table.rows[0].cells.length;
+
+      const lastRow = table.rows[rows - 1];
+      const lastCell = lastRow.cells[cols - 1];
+      if (lastCell && lastCell.textContent.trim() !== "") {
+        renderTable(getTableData(table));
+      }
+    }
+
+    function getTableData(table = container.querySelector("table")) {
+      const rows = Array.from(table.rows).slice(1);
+      return rows.map(row => {
+        const cells = Array.from(row.cells).slice(1);
+        return cells.map(td => td.textContent);
+      });
+    }
+
+    function downloadCSV() {
+      const data = getTableData();
+      const csv = data.map(row =>
+        row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(",")
+      ).join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "sheet.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    renderTable(); // Load blank sheet
+  </script>
+
+</body>
+</html>

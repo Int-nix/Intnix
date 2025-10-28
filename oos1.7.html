@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Desktop Environment</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { overflow: hidden; background: url('background.jpg') center/cover no-repeat; height: 100vh; }
+        .top-bar { position: absolute; top: 0; left: 0; width: 100%; height: 40px; background: rgba(0, 0, 0, 0.8); color: white; display: flex; align-items: center; padding: 0 15px; justify-content: space-between; }
+        .dock { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; background: rgba(0, 0, 0, 0.8); padding: 10px; border-radius: 15px; align-items: center; }
+        .dock-item { position: relative; margin: 5px; cursor: pointer; text-align: center; }
+        .dock img { width: 50px; height: 50px; transition: 0.2s; }
+        .dock img:hover { transform: scale(1.2); }
+        .dot-indicator { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 6px; height: 6px; background: white; border-radius: 50%; display: none; }
+        .window { position: absolute; width: 500px; height: 350px; background: white; border-radius: 5px; box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; resize: both; overflow: hidden; }
+        .window-header { background: #333; color: white; padding: 5px; cursor: grab; display: flex; justify-content: space-between; align-items: center; }
+        .close-btn { color: red; cursor: pointer; }
+        .file-manager { display: flex; height: 100%; }
+        .sidebar { width: 150px; background: #f4f4f4; padding: 10px; border-right: 1px solid #ccc; display: flex; flex-direction: column; }
+        .sidebar-item { padding: 8px; cursor: pointer; border-radius: 3px; }
+        .sidebar-item:hover { background: #ddd; }
+        .file-view { flex: 1; padding: 10px; overflow-y: auto; }
+        .file-item { padding: 5px; border-bottom: 1px solid #ccc; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div>OOS</div>
+        <div id="time"></div>
+    </div>
+    <div class="dock">
+          <div class="dock-item" id="folder-icon">
+            <img src="File.jpg" onclick="openFileManager('folder-icon')">
+            <div class="dot-indicator"></div>
+        </div>
+        <div class="dock-item" id="app-icon">
+            <img src="animation.jpg" onclick="openWindow('Animation', 'app-icon', 'Animation9.1.html')">
+            <div class="dot-indicator"></div>
+        </div>
+    <div class="dock-item" id="app-icon1">
+            <img src="text.jpg" onclick="openWindow('Code Editor', 'app-icon1', 'codetest.html')">
+            <div class="dot-indicator"></div>
+        </div>
+
+    <div class="dock-item" id="app-icon2">
+            <img src="pdf.jpg" onclick="openWindow('PDF Highlter', 'app-icon2', 'pdfvier2.html')">
+            <div class="dot-indicator"></div>
+        </div>
+   <div class="dock-item" id="app-icon3">
+            <img src="speech2txt.jpg" onclick="openWindow('Voice 2 Text', 'app-icon3', 'speech2txt.html')">
+            <div class="dot-indicator"></div>
+        </div>
+   <div class="dock-item" id="app-icon4">
+            <img src="texteditor.jpg" onclick="openWindow('Word Proccesor', 'app-icon4', 'texteditor.html')">
+            <div class="dot-indicator"></div>
+        </div>
+ <div class="dock-item" id="app-icon5">
+            <img src="game.jpg" onclick="openWindow('Word Proccesor', 'app-icon5', 'gameengine1.3.html')">
+            <div class="dot-indicator"></div>
+        </div>
+    
+    </div>
+    <script>
+        function updateTime() {
+            document.getElementById("time").innerText = new Date().toLocaleTimeString();
+        }
+        setInterval(updateTime, 1000);
+
+        function makeDraggable(el) {
+            let offsetX, offsetY, isDragging = false;
+            el.querySelector('.window-header').addEventListener('mousedown', function(e) {
+                isDragging = true;
+                offsetX = e.clientX - el.offsetLeft;
+                offsetY = e.clientY - el.offsetTop;
+            });
+            document.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    el.style.left = e.clientX - offsetX + 'px';
+                    el.style.top = e.clientY - offsetY + 'px';
+                }
+            });
+            document.addEventListener('mouseup', function() {
+                isDragging = false;
+            });
+        }
+
+ function openWindow(title, dockIconId, filename = null) {
+    let win = document.createElement("div");
+    win.classList.add("window");
+
+    // Use style attributes to ensure iframe takes full space
+    let content = filename 
+        ? `<iframe src="${filename}" style="width:100%; height:calc(100% - 30px); border:none;"></iframe>` 
+        : `<p style="width:100%; height:calc(100% - 30px); margin:0; display:flex; align-items:center; justify-content:center;">No file specified.</p>`;
+
+    win.innerHTML = `
+        <div class='window-header' style="display: flex; justify-content: space-between; align-items: center; padding: 5px;">
+            <span>${title}</span> 
+            <span class='close-btn' onclick='closeWindow(this, "${dockIconId}")' style="cursor: pointer;">×</span>
+        </div>
+        ${content}
+    `;
+
+    document.body.appendChild(win);
+    win.style.top = "100px";
+    win.style.left = "100px";
+    win.style.display = "flex";
+    win.style.flexDirection = "column";
+
+    makeDraggable(win);
+    document.querySelector(`#${dockIconId} .dot-indicator`).style.display = "block";
+}
+
+
+
+        function openFileManager(dockIconId) {
+            let win = document.createElement("div");
+            win.classList.add("window");
+            win.innerHTML = `<div class='window-header'><span>File Manager</span> <span class='close-btn' onclick='closeWindow(this, "${dockIconId}")'>×</span></div>
+                <div class='file-manager'>
+                    <div class='sidebar'>
+                        <div class='sidebar-item' onclick='showFiles("desktop")'>Desktop</div>
+                        <div class='sidebar-item' onclick='showFiles("documents")'>Documents</div>
+                        <div class='sidebar-item' onclick='showFiles("downloads")'>Downloads</div>
+                        <div class='sidebar-item' onclick='showFiles("applications")'>Applications</div>
+                    </div>
+                    <div class='file-view' id='file-view'>
+                        <div class='file-item'>file1.txt</div>
+                        <div class='file-item'>file2.txt</div>
+                        <div class='file-item'>My Folder</div>
+                    </div>
+                </div>`;
+            document.body.appendChild(win);
+            win.style.top = "150px";
+            win.style.left = "150px";
+            makeDraggable(win);
+            document.querySelector(`#${dockIconId} .dot-indicator`).style.display = "block";
+        }
+
+        function closeWindow(closeBtn, dockIconId) {
+            closeBtn.parentElement.parentElement.remove();
+            document.querySelector(`#${dockIconId} .dot-indicator`).style.display = "none";
+        }
+
+
+        function showFiles(section) {
+            let files = {
+                desktop: ['Shortcut 1', 'Shortcut 2'],
+                documents: ['Report.docx', 'Notes.txt'],
+                downloads: ['Setup.exe', 'Image.jpg'],
+                applications: [  `<div class='file-item' onclick="openWindow('Zip to Pdf', 'app-example', 'Zip to PDF.html')">Zip to Pdf</div>`,
+                               `<div class='file-item' onclick="openWindow('Asset Viewer', 'app-example', 'assetviewer.html')">Asset Viewer</div>`,
+            `<div class='file-item' onclick="openWindow('Text Editor', 'app-texteditor', 'texteditor.html')">Text Editor</div>`]
+            };
+            document.getElementById('file-view').innerHTML = files[section].map(file => `<div class='file-item'>${file}</div>`).join('');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Chunk Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+	<script src="assets.js"></script>
+
+    <style>
+        body { margin: 0; background-color: #222; color: white; text-align: center; }
+        #fileInput { margin: 20px; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <h1>3D Chunk Viewer</h1>
+    <p>Upload multiple JSON files:</p>
+    <p>Type <code>/cell</code> to upload a JSON file:</p>
+    <textarea id="inputArea" placeholder="Type commands here..."></textarea>
+    <input type="file" id="fileInput" style="display: none;" multiple>
+    
+	
+    <script>
+        let scene, camera, renderer, controls;
+        let chunks = {}; // Store loaded JSON chunks
+        let gridSize = 100;
+        let cellSize = 10; // Each grid cell is 10x10
+        let sections = {};
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x333333);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 10, 20);
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            
+            drawGridSections();
+            animate();
+        }
+
+        function drawGridSections() {
+            let labelOffset = cellSize / 2;
+            let letters = "ABCDEFGHIJ";
+
+            for (let i = 0; i < 10; i++) {
+                for (let j = 0; j < 10; j++) {
+                    let x = (i - 5) * cellSize;
+                    let z = (j - 5) * cellSize;
+                    let name = letters[i] + (j + 1);
+                    sections[name] = { x, z };
+
+                    let textSprite = createTextSprite(name);
+                    textSprite.position.set(x + labelOffset, 0.1, z + labelOffset);
+                    scene.add(textSprite);
+                }
+            }
+            
+            const floorGeometry = new THREE.PlaneGeometry(gridSize, gridSize);
+            const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x808080, side: THREE.DoubleSide });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            const gridHelper = new THREE.GridHelper(gridSize, gridSize / cellSize, 0xffffff, 0xffffff);
+            scene.add(gridHelper);
+        }
+
+        function createTextSprite(message) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            context.font = '30px Arial';
+            context.fillStyle = 'white';
+            context.fillText(message, 10, 40);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(5, 2.5, 1);
+            return sprite;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+    document.getElementById("inputArea").addEventListener("input", function(event) {
+    let text = event.target.value.trim();
+    let match = text.match(/^\/([A-Z]+[0-9]+)$/); // Match pattern like /E4 or /A1
+
+    if (match) {
+        let cell = match[1]; // Extract the cell reference
+        console.log("Cell selected:", cell); // You can use this for further processing
+
+        document.getElementById("fileInput").click();
+        event.target.value = ""; // Clear text area after triggering upload
+    }
+});
+
+
+        document.getElementById("fileInput").addEventListener("change", function(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        let jsonData = JSON.parse(e.target.result);
+                        let section = prompt(`Enter section (e.g., A1, B3) for ${file.name}`);
+                        if (!sections[section]) {
+                            alert("Invalid section. Try again.");
+                            return;
+                        }
+                        let { x, z } = sections[section];
+                        if (!Array.isArray(jsonData)) {
+                            throw new Error("Invalid JSON format: Expected an array of objects.");
+                        }
+                        loadChunk(jsonData, x, z, file.name);
+                    } catch (error) {
+                        console.error("Error parsing JSON:", error);
+                        alert("Invalid JSON file. Check the console for details.");
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+function loadChunk(data, gridX, gridZ, name) {
+    let chunkGroup = new THREE.Group();
+    
+    // Define the center of the assigned grid cell
+    let cellCenterX = gridX + cellSize / 2;
+    let cellCenterZ = gridZ + cellSize / 2;
+
+    data.forEach(obj => {
+        let object = createObjectFromAssets(obj);
+        
+        if (object && obj.position) {
+            // 🔥 **Scale Down Position to Fit the 10x10 Cell**
+            let adjustedX = obj.position.x / 10; // Convert from 50x50 scale to fit 10x10
+            let adjustedZ = obj.position.z / 10;
+
+            // 📌 **Ensure Proper Object Scaling**
+            let scaleFactor = 1 / 10;
+            object.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+            // Place objects relative to the **center of the cell**
+            object.position.set(cellCenterX + adjustedX, 0, cellCenterZ + adjustedZ);
+
+            // ✅ **Apply rotation if rotationCount is valid (1-4)**
+            if (obj.hasOwnProperty("rotationCount")) {
+                let count = parseInt(obj.rotationCount, 10); // Convert to integer
+
+                if (!isNaN(count) && count >= 1 && count <= 4) {
+                    let rotationDegrees = (count - 1) * 90; // Convert count to degrees
+                    object.rotation.y = THREE.MathUtils.degToRad(rotationDegrees);
+                } else {
+                    console.warn(`⚠️ Invalid rotationCount for ${obj.type}:`, obj.rotationCount);
+                }
+            }
+
+            // ✅ **Store rotationCount to track correct placement**
+            object.userData.rotationCount = obj.rotationCount || 1;
+
+            // 🔄 **Fix pivot points for correct rotation behavior**
+            let pivot = new THREE.Group();
+            pivot.position.copy(object.position);
+            object.position.set(0, 0, 0);
+            pivot.add(object);
+            chunkGroup.add(pivot);
+        }
+    });
+
+    chunks[name] = chunkGroup;
+    scene.add(chunkGroup);
+}
+
+
+
+
+		
+function createObjectFromAssets(obj) {
+    if (!obj.position) return null;
+
+       let functionName = obj.type; // Use obj.type directly
+    let createFunction = window[functionName];
+
+    if (typeof createFunction === "function") {
+        let object = createFunction(obj.position);
+
+        // ✅ Apply saved color if it exists in JSON
+        if (obj.color && object.material) {
+            object.material.color.set(obj.color);
+        } else if (obj.color && object.children) {
+            // If the object is a group (like a car), apply color to all materials inside
+            object.traverse(child => {
+                if (child.isMesh && child.material) {
+                    child.material.color.set(obj.color);
+                }
+            });
+        }
+
+        // ✅ Apply rotation if rotationPhase is present (1-4)
+        if (obj.rotationPhase !== undefined) {
+            let rotationDegrees = (obj.rotationPhase - 1) * 90; // Convert phase 1-4 to 0, 90, 180, 270 degrees
+            object.rotation.y = THREE.MathUtils.degToRad(rotationDegrees);
+        }
+
+        return object;
+    } else {
+        console.warn(`⚠️ Unknown object type: ${obj.type}`);
+        return null;
+    }
+}
+
+
+
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Tab") {
+        event.preventDefault(); // Prevents default tab behavior
+        saveSceneToJSON();
+    }
+});
+
+function saveSceneToJSON() {
+    try {
+        if (!gridData || Object.keys(gridData).length === 0) {
+            console.warn("⚠️ No objects in scene to save!");
+            alert("No objects to save!");
+            return;
+        }
+
+        let sceneData = Object.entries(gridData).map(([key, obj]) => {
+            if (!obj || !obj.object) return null; // Skip invalid objects
+
+            let rotationCount = (Math.round(obj.object.rotation.y / (Math.PI / 2)) % 4) + 1;
+
+            let objectData = {
+                id: obj.id || generateUniqueID(),
+                type: obj.type || "unknown",
+                position: obj.position || { x: 0, y: 0, z: 0 },
+                rotationCount: rotationCount,
+                materials: {}
+            };
+
+            // Store materials/colors
+            if (obj.object.material) {
+                if (Array.isArray(obj.object.material)) {
+                    obj.object.material.forEach((mat, index) => {
+                        objectData.materials[`part_${index}`] = `#${mat.color.getHexString()}`;
+                    });
+                } else {
+                    objectData.materials["main"] = `#${obj.object.material.color.getHexString()}`;
+                }
+            }
+
+            return objectData;
+        }).filter(obj => obj !== null); // Remove any null entries
+
+        if (sceneData.length === 0) {
+            console.warn("⚠️ No valid objects to save!");
+            alert("No valid objects to save!");
+            return;
+        }
+
+        let jsonOutput = JSON.stringify(sceneData, null, 4);
+        let blob = new Blob([jsonOutput], { type: "application/json" });
+        let a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "scene-data.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        console.log("✅ Scene JSON downloaded!");
+    } catch (error) {
+        console.error("❌ Error saving scene data:", error);
+        alert("Error saving scene data! Check console.");
+    }
+}
+
+
+
+
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        initThreeJS();
+    </script>
+</body>
+</html>

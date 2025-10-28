@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RunBridge Test</title>
+  <style>
+    body {
+      background: #1e1e1e;
+      color: white;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #00ff88;
+      color: black;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🧪 RunBridge Echo Test</h2>
+
+  <button onclick="run(['echo Hello from Button 1'])">🔊 Echo 1</button>
+  <button onclick="run(['echo Button 2 says hi!', 'echo Another line'])">🔊 Echo 2</button>
+  <button onclick="run(['echo First', 'echo Second', 'echo Third'])">🔊 Echo 3</button>
+
+  <script>
+  function run(newCommands) {
+    const existing = JSON.parse(localStorage.getItem("runbridge") || "[]");
+    const combined = [...existing, ...newCommands];
+    localStorage.setItem("runbridge", JSON.stringify(combined));
+
+    if (window.terminalAPI?.run) {
+      window.terminalAPI.run("runbridge");
+    } else {
+      alert("❌ terminalAPI.run not available");
+    }
+  }
+
+  </script>
+</body>
+</html>

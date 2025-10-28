@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ZIP Viewer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f4f4;
+      padding: 40px;
+      color: #333;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      border: 2px dashed #ccc;
+      background: white;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .file-card {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .file-icon {
+      font-size: 24px;
+    }
+
+    .file-name {
+      font-weight: 600;
+    }
+
+    .file-size {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .download-btn {
+      background: #007bff;
+      color: white;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+      transition: background 0.2s ease;
+    }
+
+    .download-btn:hover {
+      background: #0056b3;
+    }
+
+    #fileList h3 {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Upload a ZIP File</h2>
+  <input type="file" id="zipInput" accept=".zip" />
+  <div id="fileList">
+    <h3>Contents:</h3>
+    <div class="file-list" id="filesContainer"></div>
+  </div>
+
+  <script>
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    document.getElementById('zipInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        JSZip.loadAsync(e.target.result).then(zip => {
+          const filesContainer = document.getElementById('filesContainer');
+          filesContainer.innerHTML = '';
+
+          Object.keys(zip.files).forEach(filename => {
+            const zipEntry = zip.files[filename];
+
+            if (!zipEntry.dir) {
+              zipEntry.async('blob').then(blob => {
+                const url = URL.createObjectURL(blob);
+                const size = formatBytes(blob.size);
+
+                const card = document.createElement('div');
+                card.className = 'file-card';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const icon = document.createElement('div');
+                icon.className = 'file-icon';
+                icon.textContent = '📄';
+
+                const nameSize = document.createElement('div');
+                const name = document.createElement('div');
+                name.className = 'file-name';
+                name.textContent = filename;
+
+                const fileSize = document.createElement('div');
+                fileSize.className = 'file-size';
+                fileSize.textContent = size;
+
+                nameSize.appendChild(name);
+                nameSize.appendChild(fileSize);
+
+                info.appendChild(icon);
+                info.appendChild(nameSize);
+
+                const download = document.createElement('a');
+                download.href = url;
+                download.download = filename;
+                download.className = 'download-btn';
+                download.textContent = 'Download';
+
+                card.appendChild(info);
+                card.appendChild(download);
+                filesContainer.appendChild(card);
+              });
+            }
+          });
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  </script>
+</body>
+</html>

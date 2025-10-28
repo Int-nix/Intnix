@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Purchase Intnix</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0d0d0d;
+      color: #fff;
+    }
+
+    header {
+      background: linear-gradient(to right, #00ffcc, #007766);
+      padding: 2rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2.8em;
+      margin: 0;
+    }
+
+    header p {
+      font-size: 1.2em;
+      color: #e0e0e0;
+      margin-top: 0.5em;
+    }
+
+    .back-button {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 0.5em 1em;
+      background: #000;
+      color: #00ffcc;
+      border: 2px solid #00ffcc;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+      text-decoration: none;
+    }
+
+    .back-button:hover {
+      background: #00ffcc;
+      color: #000;
+    }
+
+    .pricing-section {
+      padding: 3rem 2rem;
+      max-width: 1000px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .pricing-box {
+      background: #1a1a1a;
+      padding: 2rem;
+      border-radius: 12px;
+      border: 1px solid #333;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    .pricing-box h2 {
+      margin-top: 0;
+      color: #00ffcc;
+      font-size: 1.8em;
+    }
+
+    .pricing-box p {
+      margin: 0.5em 0;
+      color: #ccc;
+      font-size: 1em;
+    }
+
+    .purchase-button {
+      margin-top: 1.5em;
+      background: #000;
+      border: 2px solid #00ffcc;
+      color: #00ffcc;
+      padding: 0.8em 1.5em;
+      font-size: 1em;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .purchase-button:hover {
+      background-color: #00ffcc;
+      color: #000;
+    }
+
+    footer {
+      background: #111;
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.9em;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+  <a class="back-button" href="index.html">← Back</a>
+
+  <header>
+    <h1>Get Intnix</h1>
+    <p>Choose your edition and join the movement.</p>
+  </header>
+
+  <div class="pricing-section">
+    <div class="pricing-box">
+      <h2>Beta Access – $39.99</h2>
+      <p>✔ Terminal & Finder</p>
+      <p>✔ Full Desktop Environment</p>
+      <p>✔ Core Apps Included</p>
+      <p>✔ App Store Access</p>
+      <button class="purchase-button" onclick="window.location.href='index.html'">Purchase Beta</button>
+    </div>
+
+    <div class="pricing-box">
+      <h2>Founders Edition – $59.99</h2>
+      <p>✔ Everything in Beta</p>
+      <p>✔ Lifetime Dev Tools</p>
+      <p>✔ Exclusive Founders Badge</p>
+      <p>✔ Future Access to Advanced Builds</p>
+      <button class="purchase-button" onclick="window.location.href='index.html'">Purchase Founders</button>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2025 Intnix. All rights reserved. | <a href="Intnixbussiness.com">Contact Us</a>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enhanced PDF Viewer with PDF Annotation</title>
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <!-- JSZip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #1c1c1e;
+      margin: 0;
+      padding: 20px;
+      color: #ffffff;
+    }
+
+    h2 {
+      text-align: center;
+      color: #ffffff;
+    }
+
+    #pdf-container {
+      position: relative;
+      width: 80%;
+      margin: 20px auto;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      overflow: hidden;
+      background-color: #2c2c2e;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #highlight-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+
+    #controls {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    #controls button {
+      background-color: #007aff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    #controls button:hover {
+      background-color: #005bb5;
+    }
+
+    #controls input[type="range"] {
+      width: 150px;
+      margin: 0 10px;
+    }
+
+    #page-info {
+      font-size: 16px;
+      margin: 0 10px;
+      color: #ffffff;
+    }
+ 
+#upload-label {
+  display: block;
+  margin: 20px auto;
+  padding: 10px 20px;
+  background-color: #007aff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: center;
+  width: fit-content;
+  transition: background-color 0.2s;
+}
+
+#upload-label:hover {
+  background-color: #005bb5;
+}
+
+
+    #upload-pdf {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      background-color: #007aff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    #upload-pdf:hover {
+      background-color: #005bb5;
+    }
+
+    .highlight-mode {
+      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="yellow" opacity="0.5"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>') 0 16, auto;
+    }
+  </style>
+</head>
+<body>
+  <h2>Enhanced PDF Viewer</h2>
+<label for="upload-pdf" id="upload-label">Upload PDF</label>
+<input type="file" id="upload-pdf" accept="application/pdf" style="display: none;">
+
+  <div id="controls">
+    <button onclick="prevPage()">Previous</button>
+    <span id="page-info">Page: 1</span>
+    <button onclick="nextPage()">Next</button>
+    <input type="range" id="zoom" min="0.5" max="3" step="0.1" value="1.5" onchange="updateZoom()" />
+    <button onclick="toggleHighlightMode()">Toggle Highlight Mode</button>
+
+ 
+    <button onclick="saveHighlights()">Save Highlights</button>
+  </div>
+  <div id="pdf-container">
+    <canvas id="pdf-canvas"></canvas>
+    <canvas id="highlight-canvas"></canvas>
+  </div>
+
+  <script>
+let pdfDoc = null,
+    pageNum = 1,
+    scale = 1.5,
+    canvas = document.getElementById("pdf-canvas"),
+    ctx = canvas.getContext("2d"),
+    highlightCanvas = document.getElementById("highlight-canvas"),
+    highlightCtx = highlightCanvas.getContext("2d"),
+    highlighting = false,
+    drawing = false,
+    highlights = [],
+    currentHighlight = null;
+
+// Load PDF file and render first page.
+document.getElementById("upload-pdf").addEventListener("change", function (event) {
+  let file = event.target.files[0];
+  if (file) {
+    let fileReader = new FileReader();
+    fileReader.onload = function () {
+      let typedarray = new Uint8Array(this.result);
+      pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+        pdfDoc = pdf;
+        pageNum = 1;
+        document.getElementById("page-info").textContent = `Page: 1 / ${pdfDoc.numPages}`;
+        renderPage(pageNum);
+        highlights = [];
+        highlightCtx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
+      });
+    };
+    fileReader.readAsArrayBuffer(file);
+  }
+});
+
+
+
+
+function renderPage(num) {
+  pdfDoc.getPage(num).then(page => {
+    let viewport = page.getViewport({ scale });
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    highlightCanvas.width = viewport.width;
+    highlightCanvas.height = viewport.height;
+    highlightCanvas.style.pointerEvents = highlighting ? "auto" : "none";
+    let renderContext = { canvasContext: ctx, viewport: viewport };
+    page.render(renderContext).promise.then(() => {
+      redrawHighlights();
+    });
+  });
+}
+
+function redrawHighlights() {
+  highlightCtx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
+  highlights.forEach(h => {
+    if (h.page === pageNum) {
+      highlightCtx.beginPath();
+      highlightCtx.strokeStyle = "yellow";
+      highlightCtx.lineWidth = 5;
+      highlightCtx.globalAlpha = 0.5;
+      highlightCtx.moveTo(h.startX, h.startY);
+      highlightCtx.lineTo(h.endX, h.endY);
+      highlightCtx.stroke();
+      highlightCtx.closePath();
+    }
+  });
+}
+
+function toggleHighlightMode() {
+  highlighting = !highlighting;
+  if (highlighting) {
+    highlightCanvas.classList.add("highlight-mode");
+    highlightCanvas.style.pointerEvents = "auto";
+  } else {
+    highlightCanvas.classList.remove("highlight-mode");
+    highlightCanvas.style.pointerEvents = "none";
+  }
+}
+
+highlightCanvas.addEventListener("mousedown", (event) => {
+  if (highlighting) {
+    drawing = true;
+    currentHighlight = { page: pageNum, startX: event.offsetX, startY: event.offsetY, endX: event.offsetX, endY: event.offsetY };
+    highlightCtx.beginPath();
+    highlightCtx.moveTo(event.offsetX, event.offsetY);
+  }
+});
+
+highlightCanvas.addEventListener("mouseup", () => {
+  if (drawing && currentHighlight) {
+    drawing = false;
+    highlights.push(currentHighlight);
+    currentHighlight = null;
+  }
+});
+
+highlightCanvas.addEventListener("mousemove", (event) => {
+  if (!drawing || !highlighting) return;
+  currentHighlight.endX = event.offsetX;
+  currentHighlight.endY = event.offsetY;
+  redrawHighlights();
+  highlightCtx.beginPath();
+  highlightCtx.strokeStyle = "yellow";
+  highlightCtx.lineWidth = 5;
+  highlightCtx.globalAlpha = 0.5;
+  highlightCtx.moveTo(currentHighlight.startX, currentHighlight.startY);
+  highlightCtx.lineTo(currentHighlight.endX, currentHighlight.endY);
+  highlightCtx.stroke();
+  highlightCtx.closePath();
+});
+
+function nextPage() {
+  if (pageNum < pdfDoc.numPages) {
+    pageNum++;
+    renderPage(pageNum);
+    document.getElementById("page-info").textContent = `Page: ${pageNum} / ${pdfDoc.numPages}`;
+  }
+}
+
+function prevPage() {
+  if (pageNum > 1) {
+    pageNum--;
+    renderPage(pageNum);
+    document.getElementById("page-info").textContent = `Page: ${pageNum} / ${pdfDoc.numPages}`;
+  }
+}
+
+
+function updateZoom() {
+  scale = parseFloat(document.getElementById("zoom").value);
+  renderPage(pageNum);
+}
+
+async function saveHighlights() {
+  console.log("Save highlights function called.");
+  if (!pdfDoc) {
+    console.log("No PDF document loaded.");
+    return;
+  }
+  let zip = new JSZip();
+  let promises = [];
+  for (let i = 1; i <= pdfDoc.numPages; i++) {
+    promises.push(
+      new Promise((resolve) => {
+        pdfDoc.getPage(i).then(page => {
+          let viewport = page.getViewport({ scale });
+          let canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          let ctx = canvas.getContext("2d");
+          let renderContext = { canvasContext: ctx, viewport: viewport };
+          page.render(renderContext).promise.then(() => {
+            redrawHighlightsForPage(ctx, i);
+            canvas.toBlob(blob => {
+              zip.file(`page${i}.png`, blob);
+              console.log(`Page ${i} added to ZIP file.`);
+              resolve();
+            });
+          });
+        });
+      })
+    );
+  }
+  Promise.all(promises).then(() => {
+    zip.generateAsync({ type: "blob" }).then(content => {
+      let link = document.createElement("a");
+      link.href = URL.createObjectURL(content);
+      link.download = "highlighted_pages.zip";
+      link.click();
+      console.log("ZIP file generated and download started.");
+    });
+  });
+}
+
+function redrawHighlightsForPage(ctx, pageNum) {
+  highlights.forEach(h => {
+    if (h.page === pageNum) {
+      ctx.beginPath();
+      ctx.strokeStyle = "yellow";
+      ctx.lineWidth = 5;
+      ctx.globalAlpha = 0.5;
+      ctx.moveTo(h.startX, h.startY);
+      ctx.lineTo(h.endX, h.endY);
+      ctx.stroke();
+      ctx.closePath();
+      console.log(`Highlight drawn on page ${pageNum}.`);
+    }
+  });
+}
+  </script>
+</body>
+</html>
+

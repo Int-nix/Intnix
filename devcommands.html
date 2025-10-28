@@ -1,0 +1,170 @@
+
+
+registerCommand("createpkgreg", () => {
+  let pkgList = {};
+  let editingKey = null;
+
+  const win = document.createElement("div");
+  win.className = "window";
+  win.style = `
+    position: absolute; left: 100px; top: 100px;
+    width: 600px; height: 660px;
+    background: rgba(30,30,30,0.95);
+    color: white; font-family: monospace;
+    padding: 16px; z-index: 99999;
+    border-radius: 14px;
+    box-shadow: 0 0 20px rgba(0,255,136,0.25);
+    display: flex; flex-direction: column; gap: 10px;
+    overflow-y: auto;
+  `;
+
+  win.innerHTML = `
+    <h2>Create App Package</h2>
+    <label>📄 HTML File: <input type="file" id="htmlFile" accept=".html" /></label>
+    <label>🖼️ Icon File: <input type="file" id="iconFile" accept="image/*" /></label>
+    <label>📦 Package Name: <input type="text" id="pkgName" /></label>
+    <label>📝 Description: <input type="text" id="pkgDesc" /></label>
+    <label>🔢 Version: <input type="text" id="pkgVersion" value="1" /></label>
+
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button id="addToPkgListBtn">📌 Add to List</button>
+      <button id="cancelEditBtn" style="display:none;">🚫 Cancel Edit</button>
+      <button id="exportPkgManifestBtn">📥 Export Full Manifest</button>
+      <button id="uploadManifestBtn">📂 Upload Existing Manifest</button>
+      <button onclick="this.parentElement.parentElement.remove()">❌ Close</button>
+    </div>
+
+    <hr style="border-color: #00ff88;">
+    <div id="pkgListViewer" style="max-height: 160px; overflow-y: auto; font-size: 13px; color: #00ff88; white-space: pre-wrap; border: 1px solid #00ff88; padding: 6px;"></div>
+
+    <div id="pkgLog" style="margin-top: 10px; font-size: 13px; color: #00ff88; white-space: pre-wrap; border-top: 1px solid #00ff88; padding-top: 10px;"></div>
+  `;
+
+  document.body.appendChild(win);
+
+  const log = msg => {
+    const logBox = document.getElementById("pkgLog");
+    logBox.textContent += `\n${msg}`;
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+
+  const resetForm = () => {
+    editingKey = null;
+    document.getElementById("pkgName").value = "";
+    document.getElementById("pkgDesc").value = "";
+    document.getElementById("pkgVersion").value = "1";
+    document.getElementById("htmlFile").value = "";
+    document.getElementById("iconFile").value = "";
+    document.getElementById("cancelEditBtn").style.display = "none";
+  };
+
+  const renderPkgList = () => {
+    const viewer = document.getElementById("pkgListViewer");
+    viewer.innerHTML = "";
+    Object.keys(pkgList).forEach(name => {
+      const div = document.createElement("div");
+      div.style.display = "flex";
+      div.style.justifyContent = "space-between";
+      div.style.alignItems = "center";
+      div.style.marginBottom = "4px";
+
+      const label = document.createElement("span");
+      label.textContent = `🧾 ${name}`;
+      label.style.cursor = "pointer";
+      label.onclick = () => {
+        const pkg = pkgList[name];
+        document.getElementById("pkgName").value = name;
+        document.getElementById("pkgDesc").value = pkg.description;
+        document.getElementById("pkgVersion").value = pkg.version;
+        editingKey = name;
+        document.getElementById("cancelEditBtn").style.display = "inline-block";
+        log(`✏️ Editing "${name}"`);
+      };
+
+      const del = document.createElement("button");
+      del.textContent = "❌";
+      del.style.fontSize = "11px";
+      del.style.background = "transparent";
+      del.style.color = "#ff6666";
+      del.style.border = "none";
+      del.style.cursor = "pointer";
+      del.onclick = () => {
+        delete pkgList[name];
+        log(`🗑️ Deleted "${name}" from list`);
+        renderPkgList();
+        if (editingKey === name) resetForm();
+      };
+
+      div.appendChild(label);
+      div.appendChild(del);
+      viewer.appendChild(div);
+    });
+  };
+
+  document.getElementById("addToPkgListBtn").onclick = async () => {
+    const htmlInput = document.getElementById("htmlFile").files[0];
+    const iconInput = document.getElementById("iconFile").files[0];
+    const name = document.getElementById("pkgName").value.trim();
+    const desc = document.getElementById("pkgDesc").value.trim();
+    const version = document.getElementById("pkgVersion").value.trim();
+
+    if (!htmlInput || !iconInput || !name) {
+      alert("❌ Please fill all fields and select both files.");
+      return;
+    }
+
+    const htmlContent = await htmlInput.text();
+    const iconName = iconInput.name;
+
+    pkgList[name] = {
+      file: `/pkgrepo/${name}.app`,
+      icon: iconName,
+      description: desc,
+      version: version || "1",
+      type: "html",
+      content: htmlContent
+    };
+
+    log(`✅ ${editingKey ? "Updated" : "Added"} "${name}"`);
+    resetForm();
+    renderPkgList();
+  };
+
+  document.getElementById("cancelEditBtn").onclick = () => {
+    resetForm();
+    log("🚫 Canceled editing");
+  };
+
+  document.getElementById("exportPkgManifestBtn").onclick = () => {
+    if (Object.keys(pkgList).length === 0) {
+      alert("❌ No packages added.");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(pkgList, null, 2)], { type: "application/json" });
+    saveAs(blob, `pkgMan.json`);
+    log("📦 Exported full pkgMan.json");
+  };
+
+  document.getElementById("uploadManifestBtn").onclick = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = () => {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          Object.assign(pkgList, data);
+          renderPkgList();
+          log(`📂 Loaded ${Object.keys(data).length} existing packages from manifest.`);
+        } catch {
+          alert("❌ Failed to load manifest. Invalid JSON.");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+});

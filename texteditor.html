@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature-Rich Text Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .toolbar {
+            background-color: #007bff;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            color: white;
+        }
+        .toolbar button, .toolbar select, .toolbar input[type="color"] {
+            padding: 5px 10px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+        }
+        .toolbar button:hover {
+            background-color: #0056b3;
+        }
+        .editor-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .editor {
+            width: 100%;
+            max-width: 850px;
+            height: 100%;
+            max-height: calc(100% - 20px);
+            margin: auto;
+            padding: 1in;
+            border: 1px solid #ccc;
+            outline: none;
+            overflow-y: auto;
+            background-color: #fff;
+            color: #000;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+        .dark-mode {
+            background-color: #333;
+            color: #fff;
+        }
+        .dark-mode .toolbar {
+            background-color: #444;
+        }
+        .dark-mode .editor {
+            background-color: #222;
+            color: #ddd;
+            border-color: #555;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button onclick="execCmd('bold')"><b>B</b></button>
+        <button onclick="execCmd('italic')"><i>I</i></button>
+        <button onclick="execCmd('underline')"><u>U</u></button>
+        <button onclick="execCmd('strikeThrough')"><s>S</s></button>
+        <button onclick="execCmd('justifyLeft')">Left</button>
+        <button onclick="execCmd('justifyCenter')">Center</button>
+        <button onclick="execCmd('justifyRight')">Right</button>
+        <button onclick="execCmd('justifyFull')">Justify</button>
+        <button onclick="execCmd('insertOrderedList')">OL</button>
+        <button onclick="execCmd('insertUnorderedList')">UL</button>
+        <select onchange="execCmdWithArg('fontSize', this.value)">
+            <option value="3">Font Size</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+        </select>
+        <input type="color" onchange="execCmdWithArg('foreColor', this.value)" title="Font Color">
+        <button onclick="undo()">Undo</button>
+        <button onclick="redo()">Redo</button>
+        <button onclick="clearEditor()">Clear</button>
+        <button onclick="saveContent()">Save</button>
+        <input type="file" id="fileInput" onchange="loadContent(event)">
+        <button onclick="toggleDarkMode()">Dark/Light Mode</button>
+        <input type="file" id="fileInput" onchange="loadContent(event)" accept=".html">
+         <button onclick="exportContent()">Export</button> <!-- New Export Button -->
+    </div>
+    <div class="editor-container">
+        <div id="editor" class="editor" contenteditable="true"></div>
+    </div>
+
+    <script>
+        function execCmd(command) {
+            document.execCommand(command, false, null);
+        }
+
+        function execCmdWithArg(command, arg) {
+            document.execCommand(command, false, arg);
+        }
+
+        function undo() {
+            document.execCommand('undo', false, null);
+        }
+
+        function redo() {
+            document.execCommand('redo', false, null);
+        }
+
+        function clearEditor() {
+            document.getElementById('editor').innerHTML = '';
+        }
+
+        function saveContent() {
+            const content = document.getElementById('editor').innerHTML;
+            const blob = new Blob([content], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'document.html';
+            a.click();
+        }
+
+        function importHtmlFile(event) {
+              const file = event.target.files[0];
+              if (file) {
+                  const reader = new FileReader();
+                  reader.onload = function(e) {
+                      document.getElementById('editor').textContent = e.target.result;
+                  };
+                  reader.readAsText(file);
+              }
+          }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+        }
+        function exportContent() {
+            const content = document.getElementById('editor').innerHTML;
+            const fileName = prompt('Enter the file name:', 'exported_document.html');
+            if (fileName) {
+                const blob = new Blob([content], { type: 'text/html' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = fileName.endsWith('.html') ? fileName : `${fileName}.html`;
+                a.click();
+            }
+        }
+
+        document.getElementById('editor').addEventListener('keydown', function (e) {
+    const editor = this;
+    if (e.key === ' ' && window.getSelection) {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+
+        const range = selection.getRangeAt(0);
+        const node = range.startContainer;
+
+        if (node.nodeType === 3) { // text node
+            const text = node.textContent;
+            const beforeCursor = text.substring(0, range.startOffset);
+
+            if (beforeCursor.trim() === '-') {
+                e.preventDefault();
+
+                // Create list
+                const li = document.createElement('li');
+                li.innerHTML = '&nbsp;'; // Placeholder for user text
+
+                const ul = document.createElement('ul');
+                ul.appendChild(li);
+
+                const parent = node.parentNode;
+                parent.removeChild(node);
+
+                range.deleteContents();
+                range.insertNode(ul);
+
+                // Place cursor inside the new list item
+                const newRange = document.createRange();
+                newRange.setStart(li, 0);
+                newRange.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            }
+        }
+    }
+});
+
+    </script>
+</body>
+</html>

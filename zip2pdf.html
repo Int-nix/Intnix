@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZIP to PDF Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+        }
+        h2 {
+            color: #333;
+        }
+        input {
+            margin: 10px 0;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>ZIP to PDF Converter</h2>
+        <input type="file" id="zipInput" accept=".zip">
+        <br>
+        <button onclick="convertZipToPdf()">Convert to PDF</button>
+    </div>
+
+    <script>
+        async function convertZipToPdf() {
+            const zipFile = document.getElementById('zipInput').files[0];
+            if (!zipFile) {
+                alert('Please upload a ZIP file first.');
+                return;
+            }
+            
+            const jsPDF = window.jspdf.jsPDF;
+            const zip = new JSZip();
+            const pdf = new jsPDF();
+            
+            const zipData = await zip.loadAsync(zipFile);
+            const imageFiles = Object.keys(zipData.files).filter(file => file.endsWith(".png"));
+            if (imageFiles.length === 0) {
+                alert('No PNG images found in the ZIP file.');
+                return;
+            }
+            
+            imageFiles.sort((a, b) => {
+    return a.match(/\d+/) - b.match(/\d+/);
+});
+
+            let firstImage = true;
+            
+            for (const fileName of imageFiles) {
+                const fileData = await zipData.files[fileName].async("base64");
+                const img = new Image();
+                img.src = 'data:image/png;base64,' + fileData;
+                
+                await new Promise(resolve => img.onload = resolve);
+                const width = pdf.internal.pageSize.getWidth();
+                const height = (img.height / img.width) * width;
+                
+                if (!firstImage) pdf.addPage();
+                firstImage = false;
+                pdf.addImage(img, 'PNG', 0, 0, width, height);
+            }
+            
+            pdf.save("output.pdf");
+        }
+    </script>
+</body>
+</html>

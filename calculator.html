@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Scientific Calculator</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: transparent;
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    #calculator {
+      width: 400px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 20px;
+      color: white;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    #display {
+      width: 95%;
+      height: 50px;
+      font-size: 1.6em;
+      padding: 10px;
+      margin-bottom: 16px;
+      text-align: right;
+      border: none;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #88ffc4;
+  text-shadow: 0 0 5px #00ff88, 0 0 10px #00ff88;
+
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      padding: 14px;
+      font-size: 1.1em;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .wide {
+      grid-column: span 2;
+    }
+
+    .function { color: #00ccff; }
+    .operator { color: #ffaa00; }
+  </style>
+</head>
+<body>
+  <div id="calculator">
+    <input id="display" type="text" readonly />
+    <div class="buttons">
+      <button onclick="insert('(')">(</button>
+      <button onclick="insert(')')">)</button>
+      <button onclick="insert('^')" class="operator">^</button>
+      <button onclick="insert('sqrt(')" class="function">√</button>
+      <button onclick="clearDisplay()">C</button>
+
+      <button onclick="insert('7')">7</button>
+      <button onclick="insert('8')">8</button>
+      <button onclick="insert('9')">9</button>
+      <button onclick="insert('/')" class="operator">÷</button>
+      <button onclick="insert('log(')" class="function">log</button>
+
+      <button onclick="insert('4')">4</button>
+      <button onclick="insert('5')">5</button>
+      <button onclick="insert('6')">6</button>
+      <button onclick="insert('*')" class="operator">×</button>
+      <button onclick="insert('ln(')" class="function">ln</button>
+
+      <button onclick="insert('1')">1</button>
+      <button onclick="insert('2')">2</button>
+      <button onclick="insert('3')">3</button>
+      <button onclick="insert('-')" class="operator">−</button>
+      <button onclick="insert('pi')" class="function">π</button>
+
+      <button onclick="insert('0')">0</button>
+      <button onclick="insert('.')">.</button>
+      <button onclick="calculate()" class="wide operator">=</button>
+      <button onclick="insert('+')" class="operator">+</button>
+      <button onclick="insert('e')" class="function">e</button>
+
+      <button onclick="insert('sin(')" class="function">sin</button>
+      <button onclick="insert('cos(')" class="function">cos</button>
+      <button onclick="insert('tan(')" class="function">tan</button>
+      <button onclick="backspace()">⌫</button>
+    </div>
+  </div>
+
+  <script>
+    const display = document.getElementById("display");
+
+    function insert(value) {
+      display.value += value;
+    }
+
+    function clearDisplay() {
+      display.value = '';
+    }
+
+    function backspace() {
+      display.value = display.value.slice(0, -1);
+    }
+
+    function calculate() {
+      try {
+        const expr = display.value
+          .replace(/pi/g, Math.PI)
+          .replace(/e/g, Math.E)
+          .replace(/sqrt/g, 'Math.sqrt')
+          .replace(/ln/g, 'Math.log')
+          .replace(/log/g, 'Math.log10')
+          .replace(/sin/g, 'Math.sin')
+          .replace(/cos/g, 'Math.cos')
+          .replace(/tan/g, 'Math.tan')
+          .replace(/\^/g, '**');
+
+        display.value = eval(expr);
+      } catch {
+        display.value = "Error";
+      }
+    }
+
+    // Keyboard support
+    document.addEventListener("keydown", (e) => {
+      const key = e.key;
+
+      if (!isNaN(key) || "+-*/().".includes(key)) {
+        insert(key);
+      } else if (key === "Enter") {
+        calculate();
+      } else if (key === "Backspace") {
+        backspace();
+      }
+    });
+  </script>
+</body>
+</html>

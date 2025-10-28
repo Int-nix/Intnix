@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Manipulation with Camera Lock & Controlled Rotation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+ <script src="assets.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+#menu {
+    display: none;
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    background: rgba(30, 30, 30, 0.95);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    backdrop-filter: blur(5px);
+    min-width: 200px;
+    max-height: 300px; /* Restrict height */
+    overflow-y: auto; /* Enable vertical scrolling */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Custom scrollbar */
+#menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+#menu::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+#menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+}
+
+#menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* Buttons inside menu */
+#menu button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    background: linear-gradient(to bottom, #444, #222);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease-in-out;
+}
+
+#menu button:hover {
+    background: linear-gradient(to bottom, #666, #333);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+#menu button:active {
+    background: linear-gradient(to bottom, #222, #111);
+    transform: scale(0.98);
+}
+
+/* Fade-in effect */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+#menu {
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+#timeline-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+}
+
+
+#timeline {
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    height: 120px;
+    border-top: 3px solid #666;
+    border-bottom: 3px solid #666;
+    padding: 5px;
+    background: #181818;
+    position: relative;
+}
+
+#timeline-header {
+    position: absolute;
+    top: -30px;
+    left: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #ccc;
+}
+
+#keyframes {
+    display: flex;
+    gap: 2px;
+    flex-grow: 1;
+    position: relative;
+}
+
+.keyframe {
+    width: 12px;
+    height: 30px;
+    background: linear-gradient(to bottom, #ff3c3c, #a30000);
+    border: 1px solid #700000;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: transform 0.1s ease-in-out, background 0.2s;
+    box-shadow: 0px 0px 4px rgba(255, 0, 0, 0.8);
+}
+
+.keyframe:hover {
+    transform: scale(1.1);
+    background: linear-gradient(to bottom, #ff5555, #b30000);
+}
+
+#timeline-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+#timeline-controls button {
+    padding: 6px 12px;
+    background: linear-gradient(to bottom, #292929, #1a1a1a);
+    color: white;
+    border: 1px solid #555;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease-in-out;
+}
+
+#timeline-controls button:hover {
+    background: linear-gradient(to bottom, #444, #222);
+    border-color: #777;
+}
+
+#timeline-tracks {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 80px;
+    border-top: 1px solid #333;
+}
+
+.timeline-track {
+    height: 40px;
+    border-bottom: 1px solid #333;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    padding: 0 5px;
+    position: relative;
+}
+
+.timeline-track:nth-child(even) {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.timeline-track-label {
+    color: #aaa;
+    font-size: 12px;
+    padding-right: 10px;
+    white-space: nowrap;
+}
+
+
+    </style>
+</head>
+<body>
+<div id="menu"></div>
+<div id="timeline-container">
+    <div id="timeline">
+        <div id="timeline-header">Animation Timeline</div>
+        <div id="timeline-controls">
+            <button onclick="startRecording()">🔴 Record</button>
+            <button onclick="stopRecording()">⏹ Stop</button>
+            <button onclick="startPlayback()">▶ Play</button>
+            <button onclick="stopPlayback()">⏸ Stop</button>
+    <button onclick="exportAnimation()">Export Animation</button>
+    <button onclick="toggleMenu()">📍 Add Object</button>
+     <button onclick="deleteLastObject()">❌ Delete Last Object</button>
+     <button onclick="toggleCameraLock()">Lock Camera</button>
+     
+
+        </div>
+<div id="timeline-tracks"></div>
+
+        <div id="keyframes"></div>
+    </div>
+
+</div>
+
+    <script>
+// Setup Scene
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Orbit Controls
+const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+camera.position.set(0, 5, 10);
+orbitControls.update();
+
+// Helpers
+scene.add(new THREE.GridHelper(10, 10));
+
+// Lighting
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 10, 5);
+scene.add(light);
+
+// Objects & Selection
+const objects = [];
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let selectedObject = null;
+let isDragging = false;
+let isRotatingY = false;
+let isRotatingX = false;
+let cameraLocked = false;
+
+// Cache Menu Element
+const menu = document.getElementById("menu");
+
+// Event Listeners (Efficient Handling)
+window.addEventListener("mousemove", onMouseMove);
+window.addEventListener("mousedown", onMouseDown);
+window.addEventListener("mouseup", () => (isDragging = false));
+window.addEventListener("keydown", onKeyChange);
+window.addEventListener("keyup", onKeyChange);
+window.addEventListener("message", onMessage);
+window.addEventListener("keydown", (event) => {
+    if (event.key.toLowerCase() === "m") toggleMenu();
+});
+
+
+// Mouse State Variables
+let dragOffset = new THREE.Vector3();
+let dragPlane = new THREE.Plane();
+let dragIntersectPoint = new THREE.Vector3();
+
+// Update on Mouse Move
+function onMouseMove(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    if (!isDragging) {
+        raycaster.setFromCamera(mouse, camera);
+        document.body.style.cursor = raycaster.intersectObjects(objects).length > 0 ? "pointer" : "default";
+    } else if (selectedObject) {
+        handleObjectMovement(event);
+    }
+}
+
+function createSingleKeyframe(objId, index) {
+    if (!objects.length) {
+        alert("No objects in the scene to create a keyframe.");
+        return;
+    }
+
+    const object = objects.find(obj => obj.userData.id === objId);
+    if (!object) return;
+
+    const frameData = {
+        position: { x: object.position.x, y: object.position.y, z: object.position.z },
+        rotation: { x: object.rotation.x, y: object.rotation.y, z: object.rotation.z },
+        timestamp: index
+    };
+
+    animationTimeline[objId][index] = frameData; // Store keyframe in the predefined slot
+
+    let keyframeElement = document.querySelector(`#track-${objId} .keyframe[data-index="${index}"]`);
+    if (keyframeElement) {
+        keyframeElement.style.opacity = 1; // Make it visible
+        keyframeElement.style.background = "linear-gradient(to bottom, #ff3c3c, #a30000)";
+    }
+
+    console.log(`Keyframe added at slot ${index} for ${objId}`);
+}
+
+
+
+// Handle Smooth Dragging (Locks Y-Axis)
+let isMovingVertical = false;
+
+document.addEventListener("keydown", (event) => {
+    if (event.key.toLowerCase() === "z") {
+        isMovingVertical = true;
+    }
+});
+
+document.addEventListener("keyup", (event) => {
+    if (event.key.toLowerCase() === "z") {
+        isMovingVertical = false;
+    }
+});
+
+function handleObjectMovement(event) {
+    if (isRotatingY) {
+        selectedObject.rotation.y += event.movementX * 0.02;
+    } else if (isRotatingX) {
+        selectedObject.rotation.x += event.movementY * 0.02;
+    } else {
+        raycaster.setFromCamera(mouse, camera);
+        if (raycaster.ray.intersectPlane(dragPlane, dragIntersectPoint)) {
+            if (isMovingVertical) {
+                selectedObject.position.y += event.movementY * -0.05; // Invert Y for natural movement
+            } else {
+                selectedObject.position.set(
+                    dragIntersectPoint.x - dragOffset.x,
+                    selectedObject.position.y,  // Y stays the same unless moving vertically
+                    dragIntersectPoint.z - dragOffset.z
+                );
+            }
+        }
+    }
+}
+
+function deleteLastObject() {
+    if (objects.length === 0) return;
+    const lastObject = objects.pop();
+    scene.remove(lastObject);
+}
+
+// On Mouse Down (Select Object & Set Dragging Plane)
+function onMouseDown(event) {
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(objects, true);
+
+    if (intersects.length > 0) {
+        selectedObject = getRootObject(intersects[0].object);
+        isDragging = true;
+
+        // Ensure movement is locked to the XZ plane
+        dragPlane.set(new THREE.Vector3(0, 1, 0), selectedObject.position.y);
+
+        // Compute initial drag offset to prevent snapping
+        if (raycaster.ray.intersectPlane(dragPlane, dragIntersectPoint)) {
+            dragOffset.set(
+                dragIntersectPoint.x - selectedObject.position.x,
+                0, // Y offset not needed
+                dragIntersectPoint.z - selectedObject.position.z
+            );
+        }
+    } else {
+        selectedObject = null;
+    }
+}
+
+
+// Get Root Object (Avoid Unnecessary Loops)
+function getRootObject(object) {
+    while (object.parent && !(object.parent instanceof THREE.Scene)) {
+        if (object.parent instanceof THREE.Group) return object.parent;
+        object = object.parent;
+    }
+    return object;
+}
+
+// Key Events (One Function for Both Down/Up)
+function toggleCameraLock() {
+    cameraLocked = !cameraLocked;
+    orbitControls.enabled = !cameraLocked;
+}
+
+function onKeyChange(event) {
+    const isDown = event.type === "keydown";
+
+    switch (event.code) {
+        case "CapsLock":
+            toggleCameraLock();
+            break;
+        case "ShiftLeft":
+            isRotatingY = isDown;
+            break;
+        case "AltLeft":
+            isRotatingX = isDown;
+            break;
+    }
+}
+
+
+// Save Object State (Avoid Redundant Saves)
+function saveObjectState(object) {
+    if (!object || !object.userData.id) return;
+
+    const objectID = object.userData.id;
+    const newState = {
+        id: objectID,
+        position: { ...object.position },
+        rotation: { ...object.rotation },
+        timestamp: Date.now()
+    };
+
+    let objectStates = JSON.parse(localStorage.getItem(objectID)) || [];
+    const lastState = objectStates[objectStates.length - 1];
+
+    if (lastState && JSON.stringify(lastState) === JSON.stringify(newState)) return;
+    objectStates.push(newState);
+    localStorage.setItem(objectID, JSON.stringify(objectStates));
+}
+
+// Object Management
+let objectCount = 0;
+function findAssetFunctions() {
+    return Object.keys(window).filter(key => key.startsWith("create") && typeof window[key] === "function");
+}
+
+function addObject(type) {
+    if (typeof window[type] !== "function") return console.warn("Asset function not found:", type);
+
+    try {
+        const object = window[type](new THREE.Vector3(0, 0, 0));
+        if (!(object instanceof THREE.Object3D)) return console.error(`Invalid object: ${type}`, object);
+
+        object.userData.id = `${type}_${objectCount++}`;
+        object.userData.functionName = type;
+        scene.add(object);
+        objects.push(object);
+        initializeKeyframes(object.userData.id); // Initialize 100 empty keyframe slots
+        restoreObjectStates();
+        window.parent.postMessage({ action: "objectAdded", objectType: type }, "*");
+    } catch (error) {
+        console.error(`Error adding object: ${type}`, error);
+    }
+
+    menu.style.display = "none";
+}
+
+function initializeKeyframes(objId) {
+    if (!animationTimeline[objId]) {
+        animationTimeline[objId] = new Array(100).fill(null); // Initialize 100 slots
+    }
+
+    let track = document.createElement("div");
+    track.classList.add("timeline-track");
+    track.id = `track-${objId}`;
+    track.innerHTML = `<span class="timeline-track-label">${objId}</span>`;
+
+    for (let i = 0; i < 100; i++) {
+        const keyframe = document.createElement("div");
+        keyframe.classList.add("keyframe");
+        keyframe.dataset.index = i;
+        keyframe.style.opacity = 0.3; // Make it visually distinct as empty
+
+        keyframe.onclick = function () {
+            createSingleKeyframe(objId, i);
+        };
+
+        track.appendChild(keyframe);
+    }
+
+    document.getElementById("timeline-tracks").appendChild(track);
+}
+
+// Toggle Menu
+function toggleMenu(forceOpen = false) {
+    if (!menu) return console.error("Menu element not found!");
+
+    if (!forceOpen && menu.style.display === "block") {
+        menu.style.display = "none";
+        return;
+    }
+
+    menu.innerHTML = "";
+    const assetNames = findAssetFunctions();
+
+    if (assetNames.length === 0) {
+        menu.innerHTML = "<p>No assets found.</p>";
+    } else {
+        assetNames.forEach(assetName => {
+            const button = document.createElement("button");
+            button.innerText = assetName;
+            button.onclick = () => addObject(assetName);
+            menu.appendChild(button);
+        });
+    }
+
+    menu.style.display = "block";
+}
+
+// Message Listener
+function onMessage(event) {
+    if (event.data.action === "objectAdded") {
+        console.log("Object added:", event.data.objectType);
+        addObjectToTimeline(event.data.objectType);
+    } else if (event.data.action === "triggerMKey") {
+        console.log("Received message to trigger 'm' key event.");
+        toggleMenu();
+    }
+}
+
+// Animation Loop
+function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+}
+animate();
+
+// Timeline for storing animation frames
+let animationTimeline = {}; // Store keyframes per object
+
+let isRecording = false;
+let isPlaying = false;
+let playbackIndex = 0;
+let playbackInterval;
+
+// Start Recording
+function startRecording() {
+    animationTimeline = [];
+    document.getElementById("keyframes").innerHTML = ""; // Clear timeline
+    isRecording = true;
+    console.log("Recording started...");
+}
+
+// Stop Recording
+function stopRecording() {
+    isRecording = false;
+    console.log("Recording stopped.");
+}
+
+// Save Object States
+function recordFrame() {
+    if (!isRecording) return;
+
+    const frameData = objects.map(obj => ({
+        id: obj.userData.id,
+        position: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
+        rotation: { x: obj.rotation.x, y: obj.rotation.y, z: obj.rotation.z }
+    }));
+
+    animationTimeline.push(frameData);
+    createKeyframeElement(animationTimeline.length - 1);
+}
+
+// Create a Keyframe in the Timeline
+function createKeyframeElement(objId, index) {
+    let track = document.getElementById(`track-${objId}`);
+
+    if (!track) {
+        track = document.createElement("div");
+        track.classList.add("timeline-track");
+        track.id = `track-${objId}`;
+        track.innerHTML = `<span class="timeline-track-label">${objId}</span>`;
+        document.getElementById("timeline-tracks").appendChild(track);
+    }
+
+    const keyframe = document.createElement("div");
+    keyframe.classList.add("keyframe");
+    keyframe.dataset.index = index;
+
+    keyframe.onclick = function () {
+        editKeyframe(objId, index);
+    };
+
+    track.appendChild(keyframe);
+}
+
+
+// Open Keyframe Editor
+function editKeyframe(objId, index) {
+    const frame = animationTimeline[objId][index];
+    if (!frame) return;
+
+    const editor = document.createElement("div");
+    editor.innerHTML = `
+        <div style="position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); background: white; padding: 10px; border-radius: 5px;">
+            <h3>Edit Keyframe for ${objId}</h3>
+            <p>Position: (${frame.position.x.toFixed(2)}, ${frame.position.y.toFixed(2)}, ${frame.position.z.toFixed(2)})</p>
+            <button onclick="deleteKeyframe('${objId}', ${index})">Delete Keyframe</button>
+            <button onclick="closeEditor(this)">Close</button>
+        </div>
+    `;
+
+    document.body.appendChild(editor);
+}
+
+
+// Delete Keyframe
+function deleteKeyframe(objId, index) {
+    animationTimeline[objId].splice(index, 1);
+    document.getElementById(`track-${objId}`).children[index + 1].remove();
+}
+
+
+// Close Keyframe Editor
+function closeEditor(button) {
+    button.parentElement.remove();
+}
+
+// Start Playback
+function startPlayback() {
+    if (Object.keys(animationTimeline).length === 0) {
+        alert("No animation recorded.");
+        return;
+    }
+
+    // Clear any existing interval before starting a new one
+    if (playbackInterval) {
+        clearInterval(playbackInterval);
+    }
+
+    isPlaying = true;
+    playbackIndex = 0;
+
+    // Get the total length of the longest animation sequence
+    const maxFrames = Math.max(...Object.values(animationTimeline).map(arr => arr.length));
+
+    // Set playback speed to 1/24 FPS (42ms per frame)
+    const frameDuration = 1000 / 24; // ~41.67ms ≈ 42ms
+
+    playbackInterval = setInterval(() => {
+        Object.keys(animationTimeline).forEach(objId => {
+            const keyframes = animationTimeline[objId];
+
+            // If this object has no more keyframes, skip updating it
+            if (playbackIndex >= keyframes.length) return;
+
+            const frame = keyframes[playbackIndex];
+            const obj = objects.find(o => o.userData.id === objId);
+
+            if (obj) {
+                obj.position.set(frame.position.x, frame.position.y, frame.position.z);
+                obj.rotation.set(frame.rotation.x, frame.rotation.y, frame.rotation.z);
+            }
+        });
+
+        playbackIndex++;
+
+        // Stop playback when we reach the longest keyframe sequence
+        if (playbackIndex >= maxFrames) {
+            stopPlayback();
+        }
+    }, frameDuration);
+}
+
+function stopPlayback() {
+    isPlaying = false;
+    clearInterval(playbackInterval); // Stop interval properly
+}
+
+
+// Capture frames every 100ms
+setInterval(recordFrame, 100);
+
+function exportAnimation() {
+    const json = JSON.stringify(animationTimeline, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "animation.json";
+    a.click();
+}
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+
+
+    </script>
+</body>
+</html>

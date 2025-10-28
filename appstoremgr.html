@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AppStore Manager</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #111;
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+
+    #app-list {
+      margin-bottom: 32px;
+    }
+
+    .app-entry {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .app-entry span {
+      display: inline-block;
+      font-weight: 600;
+      margin-right: 12px;
+    }
+
+    button {
+      background: #ff4444;
+      border: none;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      float: right;
+    }
+
+    button:hover {
+      background: #dd2222;
+    }
+
+    input, textarea {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #222;
+      color: #fff;
+    }
+
+    .save-btn {
+      background: #0077ff;
+      margin-top: 12px;
+    }
+
+    .save-btn:hover {
+      background: #005dd1;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📦 AppStore Manager</h1>
+
+<div id="app-list"></div>
+
+<hr>
+
+<h2>Add New App</h2>
+<button class="save-btn" onclick="addApp()">➕ Add App</button>
+<input id="name" placeholder="App Name">
+<input id="file" placeholder="/packages/example.html">
+<input id="icon" placeholder="icon.jpg">
+<input id="version" placeholder="1.0">
+
+<textarea id="description" placeholder="Short description..."></textarea>
+
+<textarea id="content" placeholder="Paste HTML app content here..."></textarea>
+
+
+<script>
+let manifest = {};
+
+async function loadManifest() {
+  try {
+    const res = await fetch("pkgMan.json");
+    manifest = await res.json();
+  } catch {
+    manifest = {};
+  }
+  renderList();
+}
+
+function renderList() {
+  const container = document.getElementById("app-list");
+  container.innerHTML = "<h2>Existing Apps</h2>";
+
+  const entries = Object.entries(manifest);
+  if (entries.length === 0) {
+    container.innerHTML += "<p>📭 No apps in the manifest.</p>";
+    return;
+  }
+
+  entries.forEach(([name, meta]) => {
+    const el = document.createElement("div");
+    el.className = "app-entry";
+
+    const header = document.createElement("div");
+    header.innerHTML = `
+      <span style="cursor: pointer; color: #00b4ff;" onclick="toggleDetails(this)">
+        📦 <strong>${name}</strong>
+      </span>
+      <span>v${meta.version || "1.0"}</span>
+      <button onclick="removeApp('${name}')">🗑 Delete</button>
+    `;
+
+    const details = document.createElement("div");
+    details.style.display = "none";
+    details.style.marginTop = "10px";
+    details.innerHTML = `
+      <div><strong>📄 File:</strong> ${meta.file || "(none)"}</div>
+      <div><strong>📝 Description:</strong> ${meta.description || "(none)"}</div>
+      <div><strong>👨‍💻 Author:</strong> ${meta.author || "Unknown"}</div>
+      <div><strong>🕒 Last Updated:</strong> ${meta.updated || "N/A"}</div>
+      <div><strong>🖼 Icon:</strong> <img src="${meta.icon || "default.jpg"}" style="height:40px;border-radius:8px;margin-top:4px;"></div>
+    `;
+
+    el.appendChild(header);
+    el.appendChild(details);
+    container.appendChild(el);
+  });
+}
+
+function toggleDetails(target) {
+  const entry = target.closest(".app-entry");
+  const details = entry.querySelector("div:nth-child(2)");
+  details.style.display = details.style.display === "none" ? "block" : "none";
+}
+
+
+function addApp() {
+  const name = document.getElementById("name").value.trim();
+  const file = document.getElementById("file").value.trim();
+  const icon = document.getElementById("icon").value.trim();
+  const version = document.getElementById("version").value.trim();
+  const description = document.getElementById("description").value.trim();
+  const content = document.getElementById("content").value;
+
+  if (!name || !file || !content) {
+    alert("❌ Name, file, and content are required.");
+    return;
+  }
+
+  manifest[name] = {
+    file,
+    icon,
+    version,
+    description,
+    content
+  };
+
+  saveManifest();
+  clearForm();
+}
+
+function removeApp(name) {
+  if (!confirm(`Remove "${name}" from the manifest?`)) return;
+  delete manifest[name];
+  saveManifest();
+}
+
+function saveManifest() {
+  const json = JSON.stringify(manifest, null, 2);
+  localStorage.setItem("pkgManifest", json);
+  alert("✅ Manifest updated in localStorage!\n\nTo persist this file externally, export pkgManifest manually.");
+  renderList();
+}
+
+function clearForm() {
+  ["name", "file", "icon", "version", "description", "content"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+}
+
+loadManifest();
+</script>
+
+</body>
+</html>

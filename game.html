@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic 3D Engine</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/three/examples/js/exporters/GLTFExporter.js"></script>
+	<script src="assets.js"></script>
+<script src="controls.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+
+   .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+.toolbar {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    background: rgba(20, 20, 20, 0.8);
+    padding: 12px 18px;
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toolbar button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.toolbar button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.toolbar button:active {
+    transform: scale(0.95);
+}
+
+
+.selected {
+            background: blue !important;
+        }
+		
+		.selected2 {
+    border: 10px solid black;/* Example border to show selection */
+transform: scale(1.4);
+transition: transform 0.1s ease-in-out	
+}
+
+.color-btn {
+    width: 30px; /* Defines square width */
+    height: 30px; /* Defines square height */
+    display: inline-block; /* Makes it a block that fits within inline layout */
+    margin: 5px; /* Adds spacing */
+    cursor: pointer; /* Indicates clickability */
+    border: 0px solid white; /* Optional border for visibility */
+}
+
+#assetPreview {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    height: 60%;
+    background-size: cover;
+    background-position: center;
+    filter: blur(10px);
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    z-index: 0; /* Below everything */
+}
+
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<script>
+//Scene setup
+let paused = false; // Game pause state
+     // Scene Setup
+        const scene = new THREE.Scene(); // create a new scene that acts as a container
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); // create a perspective camera 
+        const renderer = new THREE.WebGLRenderer(); // create a webgl render which is responsible for drawing 3d graphics
+        renderer.setSize(window.innerWidth, window.innerHeight); // set the size of the rendering area
+        document.body.appendChild(renderer.domElement); // add the renderers canvas element to the html body so it is visble on the page
+
+        // Lighting
+        const light = new THREE.DirectionalLight(0xffffff, 1, 35); // create a direction light in sky
+        light.position.set(5, 10, 5); // position light in sky 
+        scene.add(light); // add light to the scene
+
+        // Floor with Grid
+const gridSize = 100; // Floor size
+const cellSize = 5; // Grid cell size
+const floorGeometry = new THREE.PlaneGeometry(gridSize, gridSize);
+const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x808080, side: THREE.DoubleSide });
+const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+floor.rotation.x = -Math.PI / 2;
+scene.add(floor);
+
+// Grid Helper (Visual Grid Overlay)
+const gridHelper = new THREE.GridHelper(gridSize, gridSize / cellSize, 0xffffff, 0xffffff);
+scene.add(gridHelper);
+
+        // Camera Position
+        camera.position.set(0, 0.9, 5); // moves camera to this location
+        const playerHeight = 2; // defines player height
+    let selectedObject = null; // initalizes a variable for storing selected object 
+	
+// Attach a Light to the Camera
+const cameraLight = new THREE.PointLight(0xffffff, 0.9, 15); // (Color, Intensity, Distance)
+cameraLight.castShadow = true; // Enable shadows from light
+camera.add(cameraLight); // Attach light to camera
+scene.add(camera); // Ensure camera (with light) is in the scene
+
+	// Set the background color to blue
+scene.background = new THREE.Color(0x87CEEB); // Light blue (Sky color)
+</script>
+<!- adds cross hair-->
+   <div class="crosshair"></div>
+   
+<!- adds toolbar to screen-->
+<div class="toolbar"></div> <!-- Dynamic buttons will be inserted here -->
+
+<!-- Paintbrush Tool Color Picker -->
+<div class="selected2" id="colorMenu" style="display: none; position: absolute; Top: 10px; right: 80px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px;">
+    <button class="color-btn" data-color="#FF0000" style="background: red;"></button>
+    <button class="color-btn" data-color="#00FF00" style="background: green;"></button>
+    <button class="color-btn" data-color="#0000FF" style="background: blue;"></button>
+    <button class="color-btn" data-color="#FFFF00" style="background: yellow;"></button>
+    <button class="color-btn" data-color="#FFFFFF" style="background: white;"></button>
+    <button class="color-btn" data-color="#000000" style="background: black;"></button>
+	<button class="color-btn" data-color="#FF69B4" style="background: Pink;"></button>
+	<button class="color-btn" data-color="#800080" style="background: Purple;"></button>
+	<button class="color-btn" data-color="#FFA500" style="background: Orange;"></button>
+</div>
+
+<!-- Asset Menu (Initially Hidden) -->
+<div id="assetMenu" style="display: none; position: absolute; top: 10px; right: 10px; width: 800px; height: 700px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 10px;">
+    <h3>Asset Menu</h3>
+    <ul id="assetList"></ul>
+    <button onclick="toggleAssetMenu()">Close</button>
+</div>
+<script>
+// Listen for "M" key to open/close Asset Viewer
+document.addEventListener("keydown", function(event) {
+    if (event.key.toLowerCase() === "m") {
+        toggleAssetMenu();
+    }
+});
+
+// Function to Toggle the Asset Menu
+function toggleAssetMenu() {
+    let assetMenu = document.getElementById("assetMenu");
+
+    if (!assetMenu) {
+        console.error("❌ [MENU] Asset Menu element not found!");
+        return;
+    }
+
+    if (assetMenu.style.display === "none") {
+        saveTemporaryGameState(); // ✅ Save scene before opening menu
+        loadAssetViewer();
+        assetMenu.style.display = "block";
+        paused = true;
+    } else {
+        console.log("🔄 [MENU] Closing menu and saving...");
+
+        saveTemporaryGameState(); // ✅ Save first
+
+        assetMenu.style.display = "none";
+        paused = false;
+
+        console.log("🔄 [MENU] Reloading page in 2 seconds...");
+        setTimeout(() => {
+          loadGameState();
+        }, 2000); // Delay reload to ensure save completes
+    }
+}
+
+//loads the assetviewer on screen
+function loadAssetViewer() {
+    let assetMenu = document.getElementById("assetMenu");
+    
+    if (!assetMenu) {
+        console.error("❌ Asset Menu element not found!");
+        return;
+    }
+
+    // Check if an iframe already exists, and remove it if necessary
+    let existingIframe = document.getElementById("assetViewerFrame");
+    if (existingIframe) {
+        existingIframe.remove();
+    }
+
+    // Create and append the iframe
+    let iframe = document.createElement("iframe");
+    iframe.id = "assetViewerFrame";
+    iframe.src = "AssetViewer.html"; // Replace with your actual asset viewer file
+    iframe.style.width = "100%";
+    iframe.style.height = "90%";
+    iframe.style.border = "none";
+
+    assetMenu.innerHTML = `<h3>Asset Viewer</h3>`;
+    assetMenu.appendChild(iframe);
+}
+
+</script>
+    </div>
+    <script>
+	
+// Create right-click menu
+const menu = document.createElement("ul");
+menu.id = "customMenu";
+Object.assign(menu.style, {
+    position: "absolute",
+    background: "#333",
+    color: "white",
+    borderRadius: "5px",
+    boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+    display: "none",
+    listStyle: "none",
+    padding: "5px 0",
+    minWidth: "120px"
+});
+document.body.appendChild(menu);
+
+const menuActions = {
+    "Rotate": () => rotateObject("y"),
+    "Delete": deleteLookedAtObject,
+    "Save": saveSceneToJSON,
+    "Reset": clearSavedDataAndReload,
+    "Asset Menu": toggleAssetMenu
+};
+
+let menuOpen = false, rightMouseDown = false, currentIndex = 0;
+const options = Object.keys(menuActions), menuItems = [];
+let menuActive = false; // Track menu state
+
+options.forEach((option, i) => {
+    let li = document.createElement("li");
+    li.textContent = option;
+    Object.assign(li.style, {
+        padding: "10px 20px",
+        cursor: "pointer",
+        display: "block",
+        background: "#333",
+        color: "white",
+        borderBottom: "1px solid #555"
+    });
+    li.addEventListener("click", () => {
+        menuActions[option]();
+        closeMenu();
+    });
+    li.addEventListener("menuSelect", () => {
+        menuActions[option]();
+        closeMenu();
+    });
+    menu.appendChild(li);
+    menuItems.push(li);
+});
+
+// Right-click to toggle menu
+document.addEventListener("mousedown", (e) => {
+    if (e.button === 2) {
+        rightMouseDown = true;
+        menuOpen = !menuOpen;
+        menuOpen ? openMenu(e) : closeMenu();
+        console.log("Menu Open:", menuOpen);
+        e.preventDefault();
+    }
+});
+
+document.addEventListener("mouseup", (e) => {
+    if (e.button === 2) rightMouseDown = false;
+});
+
+// Close menu when clicking outside
+document.addEventListener("click", (e) => {
+    if (e.button === 0 && !menu.contains(e.target)) closeMenu();
+});
+
+// Keyboard navigation
+document.addEventListener("keydown", (e) => {
+    if (menuActive) {
+        e.preventDefault(); // Stop default actions like placing objects
+
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            currentIndex = (currentIndex + (e.key === "ArrowDown" ? 1 : -1) + menuItems.length) % menuItems.length;
+            highlightMenuItem(currentIndex);
+        } else if (e.key === "Enter") {
+            const event = new Event("menuSelect", { bubbles: true });
+            menuItems[currentIndex].dispatchEvent(event);
+            e.stopPropagation(); // Prevent event from affecting other scripts
+        }
+    }
+});
+
+function openMenu() {
+    const centerX = window.innerWidth / 2;  // Get center of screen (X)
+    const centerY = window.innerHeight / 2; // Get center of screen (Y)
+
+    menu.style.display = "block";
+    menu.style.left = `${centerX}px`;
+    menu.style.top = `${centerY}px`;
+    menu.style.transform = "translate(20%, -30%)"; // Shift menu to truly center it
+
+    menuActive = true;
+    currentIndex = 0;
+    highlightMenuItem(currentIndex);
+}
+
+function closeMenu() {
+    menu.style.display = "none";
+    menuActive = false;
+    menuOpen = false;
+    document.body.requestPointerLock();
+}
+
+function highlightMenuItem(index) {
+    menuItems.forEach((item, i) => {
+        item.style.background = i === index ? "#555" : "#333";
+    });
+}
+
+const raycaster = new THREE.Raycaster();
+const direction = new THREE.Vector3();
+const interactKey = "f"; // Key to press for interaction
+
+function checkInteraction(event) {
+    if (event.key.toLowerCase() !== interactKey) return; // Ignore other keys
+
+    // Get direction from camera
+    camera.getWorldDirection(direction);
+    raycaster.set(camera.position, direction);
+
+    // Check for intersections
+    let intersects = raycaster.intersectObjects(scene.children, true);
+
+    if (intersects.length > 0) {
+        let interactedObj = intersects[0].object;
+        console.log(`✅ Interacted with object:`, interactedObj);
+
+        // Check if 'interactability' is explicitly defined
+        if (interactedObj.userData.hasOwnProperty("interactability")) {
+            if (interactedObj.userData.interactability) {
+                console.log("✨ This object **can** be interacted with!");
+            } else {
+                console.log("🚫 This object **cannot** be interacted with.");
+            }
+        } else {
+            console.log("❓ This object does not have an interactability setting.");
+        }
+    } else {
+        console.log("⚠️ No interactable object detected.");
+    }
+}
+
+// Event listener for interaction
+document.addEventListener("keydown", checkInteraction);
+
+
+function identifyLookedAtObject() {
+    raycaster.setFromCamera(mouse, camera);
+
+    // Get all objects the raycast intersects
+    const intersects = raycaster.intersectObjects(scene.children, true);
+
+    if (intersects.length > 0) {
+        const lookedAtObj = intersects[0].object; // Closest object
+        console.log(`✅ Interacted with object:`, lookedAtObj.name || lookedAtObj);
+    } else {
+        console.log("❌ No object in sight.");
+    }
+}
+
+// Call this in your update loop or on user input (e.g., key press)
+document.addEventListener("keydown", (event) => {
+    if (event.key === "e") { // Example: Press 'E' to interact
+        identifyLookedAtObject();
+    }
+});
+
+// Attach event listener for interaction
+document.addEventListener("keydown", checkInteraction);
+
+
+//Save temp gave 
+function saveTemporaryGameState() {
+    try {
+        let sceneData = Object.entries(gridData).map(([key, obj]) => {
+            if (!obj.object) {
+                console.warn(`⚠️ [SAVE] Object at ${key} is missing.`);
+                return null;
+            }
+
+            return {
+                id: obj.id || generateUniqueID(),
+                type: obj.type, // Save object type (e.g., "tree", "rock")
+                position: obj.position,
+                rotationCount: (Math.round(obj.object.rotation.y / (Math.PI / 2)) % 4) + 1
+
+            };
+        }).filter(obj => obj !== null);
+
+        localStorage.setItem("savedGameState", JSON.stringify(sceneData));
+        console.log("✅ [SAVE] Scene saved successfully!");
+    } catch (error) {
+        console.error("❌ [SAVE ERROR] Could not save scene:", error);
+    }
+}
+
+// Generate a unique ID if needed
+function generateUniqueID() {
+    return 'obj-' + Math.random().toString(36).substr(2, 9);
+}
+
+//deletes temp game
+function deleteTemporarySave() {
+   
+}
+
+// listen for t to clear data and reload
+document.addEventListener("keydown", function(event) {
+    if (event.key.toLowerCase() === "t") {
+        clearSavedDataAndReload();
+    }
+});
+
+// function to clear data and reload
+function clearSavedDataAndReload() {
+    localStorage.removeItem("savedGameState"); // Clear stored scene data
+    sessionStorage.removeItem("temporaryGameState"); // Clear temporary session data
+    console.log("🗑 Cleared all saved game data!");
+
+    location.reload(); // Refresh the page
+}
+
+
+window.addEventListener("beforeunload", clearSavedDataAndReload);
+
+window.onload = function() {
+    console.log("🌍 [INIT] Page Loaded!");
+
+    let savedData = localStorage.getItem("savedGameState");
+    
+   if (savedData) {
+    console.log("🔄 [LOAD] Temporary game state detected. Rebuilding scene...");
+    loadGameState(); // ✅ Call loadGameState to restore the scene!
+} else {
+    console.warn("⚠️ [INIT] No saved game state found.");
+}
+
+
+    let savedSlots = localStorage.getItem("selectedAssets");
+    let toolbar = document.querySelector('.toolbar');
+    toolbar.innerHTML = ''; // Clear previous buttons
+
+    objectTypes = []; // Reset objectTypes
+
+    if (savedSlots) {
+        let slotData = JSON.parse(savedSlots);
+        console.log("📦 [INIT] Loading Assets into Hotbar...");
+
+        slotData.forEach(slot => {
+            if (slot.asset) {
+                let button = document.createElement('button');
+                button.textContent = slot.asset;
+                button.setAttribute('data-slot', slot.slot);
+                button.onclick = () => assignToSlot(slot.asset);
+                toolbar.appendChild(button);
+
+                // ✅ Dynamically retrieve function using window[]
+                let assetFunction = window[slot.asset]; 
+                if (typeof assetFunction === "function") {
+                    objectTypes.push(assetFunction);
+                } else {
+                    console.warn(`⚠️ No function found for asset: ${slot.asset}`);
+                }
+            }
+        });
+
+        updateToolbar(); // Update hotbar selection
+        console.log("✅ [INIT] Assets successfully placed in hotbar:", objectTypes);
+    } else {
+        console.warn("⚠️ [INIT] No slot data found. Hotbar is empty.");
+    }
+};
+
+
+function createRoundCloud(x, y, z) {
+    const cloud = new THREE.Group(); // Create a group to combine spheres
+	cloud.name ="clouds";// names group of clouds 
+
+    const cloudMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+
+    // Create 3-5 spheres per cloud for a "puffy" look
+    const numBlobs = Math.floor(Math.random() * 3) + 3; // 3 to 5 spheres per cloud
+
+    for (let i = 0; i < numBlobs; i++) {
+        const radius = Math.random() * 1.2 + 0.8; // Random size (0.8 to 2)
+        const geometry = new THREE.SphereGeometry(radius, 16, 16); // Sphere shape
+        const blob = new THREE.Mesh(geometry, cloudMaterial);
+
+        // Randomly position each sphere around a central point
+        const offsetX = (Math.random() - 0.5) * 3; // Spread left/right
+        const offsetY = (Math.random() - 0.5) * 1.5; // Slight up/down shift
+        const offsetZ = (Math.random() - 0.5) * 3; // Spread front/back
+        blob.position.set(offsetX, offsetY, offsetZ);
+
+        cloud.add(blob); // Add sphere to the cloud group
+    }
+
+    cloud.position.set(x, y, z); // Position the whole cloud
+	return cloud;
+    scene.add(cloud);
+}
+
+// Paintbrush mode
+let paintMode = false; let selectedColor = "#FFFFFF"; let paintModeBinary = 0; // 0 means OFF, 1 means ON 
+
+// Toggle Paint Mode when "P" is pressed
+document.addEventListener("keydown", (event) => { // listen for key press
+    if (event.key === "p" || event.key === "P") { // listen for if p is pressed
+        paintMode = !paintMode; // flips paint mode flag to true
+        paintModeBinary = paintMode ? 1 : 0; // Set binary value
+        document.getElementById("colorMenu").style.display = paintMode ? "block" : "none"; // finds html element with id'colormenu
+        console.log(`Paint Mode: ${paintMode ? "ON" : "OFF"} (Binary: ${paintModeBinary})`); // logs current state of paint mode in console
+    }
+});
+
+let colorButtons = document.querySelectorAll(".color-btn"); // stores all elements in html with color-btn class as nodelist
+let selectedColorIndex = 0; // Start at the first color
+colorButtons[selectedColorIndex].classList.add("selected2");// Highlight the initially selected button
+
+
+document.addEventListener("keydown", (event) => { // Listen for keyboard events to navigate and select color
+    if (paintModeBinary === 0) return; // Only allow selection in Paint Mode
+
+    if (event.key === "ArrowRight") { // listen if right arrow key is pushed
+        // Move to the next color
+        colorButtons[selectedColorIndex].classList.remove("selected2"); // removes previous selected color from being affected by css
+        selectedColorIndex = (selectedColorIndex + 1) % colorButtons.length; // moves to next color button in list
+        colorButtons[selectedColorIndex].classList.add("selected2"); // add selected2 class to newly selected button 
+    } 
+    else if (event.key === "ArrowLeft") {
+        // Move to the previous color
+        colorButtons[selectedColorIndex].classList.remove("selected2");// removes previous selected color from being affected by css
+        selectedColorIndex = (selectedColorIndex - 1 + colorButtons.length) % colorButtons.length; // moves to next color button
+        colorButtons[selectedColorIndex].classList.add("selected2"); // add selected2 class to newly selected button
+    }
+
+    // Automatically select the highlighted color
+    selectedColor = colorButtons[selectedColorIndex].getAttribute("data-color"); // get data color attibute and update the selected color variable with new color
+    console.log(`Selected Color: ${selectedColor}`); // logs new color in console
+});
+
+// Click to paint objects
+document.addEventListener("click", (event) => { // listen for mouseclick
+    if (!paintMode) return; // exits if paint mo+de is off
+
+    const raycaster = new THREE.Raycaster();// creates raycast for mouse
+    const mouse = new THREE.Vector2(0,0);//creates 2d vectore to store mouse positon
+    raycaster.setFromCamera(mouse, camera); // shoot ray from camera to mouse position to 3d word
+    const intersects = raycaster.intersectObjects(scene.children, true); // checks which obkect ray hit in scene 
+
+
+    if (intersects.length > 0) { // checks if raycast hits any object in the secen
+        const selectedObject = intersects[0].object; // select first interscted object
+        if (selectedObject.material) { //checks of object has material
+            selectedObject.material.color.set(selectedColor);// changes objects color to current selected color
+            console.log(`Painted object: ${selectedObject.uuid} with color ${selectedColor}`); // logs paint action in console
+        }
+    }
+});
+
+// highlight object in hotbar
+       let selectedIndex = 0; // Tracks the currently selected slot
+let objectTypes = []; // Will be filled dynamically
+
+function updateToolbar() {
+    objectTypes = []; // Reset the objectTypes array
+
+    document.querySelectorAll('.toolbar button').forEach((btn, index) => {
+        let assetName = btn.textContent.trim();
+        objectTypes.push(assetName); // Fill objectTypes dynamically
+
+        btn.classList.toggle('selected', index === selectedIndex); // Highlight selected slot
+    });
+
+    console.log("🔄 [HOTBAR] Updated ObjectTypes:", objectTypes);
+}
+
+// looking for mouse or numberpad input to switch object in hotbar
+   function assignToSlot(assetName) {
+    let slots = document.querySelectorAll('.slot');
+    for (let slot of slots) {
+        if (!slot.hasChildNodes()) {
+            const div = document.createElement('div');
+            div.className = 'slot-content';
+            div.textContent = assetName;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.textContent = '-';
+            removeBtn.onclick = () => {
+                console.log(`Slot ${slot.dataset.slotNumber}: Asset removed (${assetName})`);
+                slot.innerHTML = '';
+                saveAssetsToMemory();
+            };
+
+            div.appendChild(removeBtn);
+            slot.appendChild(div);
+
+            console.log(`Slot ${slot.dataset.slotNumber}: ${assetName}`);
+            saveAssetsToMemory();
+            return; // Stop after assigning to the first empty slot
+        }
+    }
+    alert("No empty slots available!");
+}
+
+//looking for wheel input
+    document.addEventListener('wheel', (event) => {
+    selectedIndex = (selectedIndex + (event.deltaY > 0 ? 1 : -1) + objectTypes.length) % objectTypes.length;
+    selectedObject = objectTypes[selectedIndex]; // Update selectedObject
+    updateToolbar();
+    console.log(`Selected: ${selectedObject}`);
+});
+
+//looking for numberpad input
+        document.addEventListener('keydown', (event) => {
+            const num = parseInt(event.key, 10);
+            if (num >= 1 && num <= objectTypes.length) {
+                selectObject(num - 1);
+            }
+        });
+
+// Ensure gridData is declared globally
+if (typeof gridData === "undefined") {
+    var gridData = {};
+}
+
+// Function to generate a unique identifier
+function generateUniqueId() {
+    return 'obj-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+}
+
+// Function to register or update an object
+function registerObject(position, selectedObject, object) {
+    try {
+        if (!position || typeof position.x === "undefined" || typeof position.z === "undefined") {
+            throw new Error("Invalid position provided: " + JSON.stringify(position));
+        }
+
+        if (!selectedObject) {
+            throw new Error("No object type selected.");
+        }
+
+        let gridKey = `${position.x},${position.z}`;
+        let uniqueId = generateUniqueId();
+
+        // Compute distances to the edges
+        let distanceLeft = Math.abs(position.x - (-gridSize / 2));
+        let distanceRight = Math.abs(position.x - (gridSize / 2));
+        let distanceTop = Math.abs(position.z - (-gridSize / 2));
+        let distanceBottom = Math.abs(position.z - (gridSize / 2));
+
+        gridData[gridKey] = { 
+            id: uniqueId, 
+            type: selectedObject, 
+            position: { x: position.x, z: position.z },
+            distances: {
+                left: distanceLeft,
+                right: distanceRight,
+                top: distanceTop,
+                bottom: distanceBottom
+            },
+            object: object 
+        };
+
+        console.log(`✅ Object registered at ${gridKey} with ID: ${uniqueId}`);
+        console.log(`Distances: Left=${distanceLeft}, Right=${distanceRight}, Top=${distanceTop}, Bottom=${distanceBottom}`);
+        return uniqueId;
+    } catch (error) {
+        console.error("❌ Error in registerObject:", error);
+    }
+}
+
+function getRotationPhase(yRotation) {
+    // Normalize rotation within 0 - 360 degrees (2π radians)
+    const normalizedRotation = (yRotation % (2 * Math.PI) + (2 * Math.PI)) % (2 * Math.PI);
+
+    // Map rotation to 1-4 based on closest 90-degree step
+    let phase = Math.round(normalizedRotation / (Math.PI / 2)) + 1;
+    if (phase > 4) phase = 1; // Ensure phase loops correctly
+
+    console.log(`🔄 Detected Rotation: ${yRotation.toFixed(2)} rad → Phase ${phase}`);
+    return phase; // Returns a number 1-4
+}
+
+//listen for tab to save scene to json
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Tab") {
+        event.preventDefault(); // Prevents default tab behavior
+        saveSceneToJSON();
+    }
+});
+
+//saves scene information to json file
+function saveSceneToJSON() {
+    try {
+        if (!gridData || Object.keys(gridData).length === 0) {
+            console.warn("⚠️ No objects in scene to save!");
+            alert("No objects to save!");
+            return;
+        }
+
+        let sceneData = Object.entries(gridData).map(([key, obj]) => {
+            if (!obj || !obj.object) return null; // Skip invalid objects
+
+            let rotationCount = (Math.round(obj.object.rotation.y / (Math.PI / 2)) % 4) + 1;
+
+            let objectData = {
+                id: obj.id || generateUniqueID(),
+                type: obj.type || "unknown",
+                position: obj.position || { x: 0, y: 0, z: 0 },
+                rotationCount: rotationCount,
+                materials: {}
+            };
+
+            // ✅ Traverse and save all materials from child objects
+            let meshIndex = 0; // Track mesh count separately
+            obj.object.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach((mat, i) => {
+                            objectData.materials[`part_${meshIndex}_${i}`] = `#${mat.color.getHexString()}`;
+                        });
+                    } else {
+                        objectData.materials[`part_${meshIndex}`] = `#${child.material.color.getHexString()}`;
+                    }
+                    meshIndex++; // Increment only for valid meshes
+                }
+            });
+
+            return objectData;
+        }).filter(obj => obj !== null); // Remove any null entries
+
+        if (sceneData.length === 0) {
+            console.warn("⚠️ No valid objects to save!");
+            alert("No valid objects to save!");
+            return;
+        }
+
+        let jsonOutput = JSON.stringify(sceneData, null, 4);
+        let blob = new Blob([jsonOutput], { type: "application/json" });
+        let a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "scene-data.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        console.log("✅ Scene JSON downloaded!");
+    } catch (error) {
+        console.error("❌ Error saving scene data:", error);
+        alert("Error saving scene data! Check console.");
+    }
+}
+
+// loads game state from memory
+function loadGameState() {
+    let savedData = localStorage.getItem("savedGameState");
+
+    if (!savedData) {
+        console.warn("⚠️ [LOAD] No saved game state found.");
+        return;
+    }
+
+    try {
+        let sceneData = JSON.parse(savedData);
+        console.log("🔄 [LOAD] Restoring scene from localStorage...");
+        console.table(sceneData);
+
+        sceneData.forEach(obj => {
+            console.log("🔍 Object data:", obj);
+
+            let { position, type, rotationCount = 1 } = obj;
+
+            if (!position || typeof position.x === "undefined" || typeof position.z === "undefined") {
+                console.warn(`⚠️ [LOAD] Invalid position data for ${type}`);
+                return;
+            }
+
+            let gridKey = `${position.x},${position.z}`;
+
+            if (gridData[gridKey]) {
+                scene.remove(gridData[gridKey].object);
+                delete gridData[gridKey];
+            }
+
+            let createFunction = window[type];
+            if (typeof createFunction !== "function") {
+                console.warn(`⚠️ No function found for asset type: ${type}`);
+                return;
+            }
+
+            let object = createFunction(position);
+            if (object) {
+                object.userData.type = type;
+
+                // Set rotation count (ensures a valid range)
+                let validRotation = Math.max(1, Math.min(4, rotationCount));
+                object.rotation.y = (validRotation - 1) * (Math.PI / 2);
+                object.rotation.order = "YXZ";
+
+                console.log(`↻ [LOAD] Applied rotation: ${object.rotation.y} radians for ${type}`);
+
+                scene.add(object);
+                gridData[gridKey] = {
+                    type,
+                    position,
+                    rotationCount: validRotation,
+                    object
+                };
+            }
+        });
+    } catch (error) {
+        console.error("❌ [LOAD] Failed to parse saved game state:", error);
+    }
+}
+
+
+// Generate a unique ID for objects if needed
+function generateUniqueID() {
+    return 'obj-' + Math.random().toString(36).substr(2, 9);
+}
+
+// Attach event listener
+document.addEventListener('click', function(event) {
+    if (event.button === 0) { // 0 = Left-click, 1 = Middle-click, 2 = Right-click
+        placeObject(event);
+    }
+});
+
+//function to place an object
+// Function to place an object
+function placeObject(event) {
+    // Prevent placement if paint mode is on, menu is open, or pointer lock is not active
+    if (paintModeBinary === 1 || menuOpen || document.pointerLockElement !== document.body) {
+        console.warn("⚠️ Cannot place object! Ensure pointer lock is enabled and no menus are open.");
+        return;
+    }
+
+    if (objectTypes.length === 0) {
+        console.warn("⚠️ No objects in hotbar!");
+        return;
+    }
+
+    let selectedAsset = objectTypes[selectedIndex]; // Get the name of the selected hotbar slot
+    if (!selectedAsset) {
+        console.warn("⚠️ No asset selected in hotbar!");
+        return;
+    }
+
+    console.log(`🛠 Attempting to place: ${selectedAsset}`);
+
+    if (typeof window[selectedAsset] === "function") {
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(0, 0);
+        raycaster.setFromCamera(mouse, camera);
+
+        const intersects = raycaster.intersectObject(floor);
+        if (intersects.length > 0) {
+            let position = intersects[0].point;
+            position.x = Math.round(position.x / cellSize) * cellSize;
+            position.z = Math.round(position.z / cellSize) * cellSize;
+            position.y = 0;
+
+            let object = window[selectedAsset](position); // Dynamically create object
+
+            if (object) {
+                object.userData.type = selectedAsset;
+                scene.add(object);
+                gridData[`${position.x},${position.z}`] = { type: selectedAsset, position, object };
+                console.log(`✅ Placed ${selectedAsset} at (${position.x}, ${position.z})`);
+
+                saveTemporaryGameState(); // ✅ Save scene state after every placement!
+            }
+        }
+    } else {
+        console.error(`❌ Function '${selectedAsset}' does not exist in assets.js!`);
+    }
+}
+
+
+//listen for r to rotate onject
+document.addEventListener("keydown", (event) => {
+    if (event.key.toLowerCase() === "r") {
+       {
+            rotateObject("y"); // Normal R rotates on Y-axis
+        }
+    }
+});
+
+// function to rotate object
+function rotateObject(axis) {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2(0, 0);
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(scene.children, true);
+    if (intersects.length > 0) {
+        let selectedObject = intersects[0].object;
+
+        // Ignore floor and grid
+        if (selectedObject === floor || selectedObject === gridHelper) return;
+
+        // Ensure we are rotating the top-level object (avoid sub-parts)
+        while (selectedObject.parent && selectedObject.parent !== scene) {
+            selectedObject = selectedObject.parent;
+        }
+
+        // 🔥 SIMPLE: Rotate the object exactly in place
+        if (axis === "y") {
+            selectedObject.rotation.y += Math.PI / 2; // Rotate 90 degrees
+	
+        }
+				let rotationCount = (Math.round(selectedObject.rotation.y / (Math.PI / 2)) % 4) + 1;
+
+        console.log(`🔄 Rotated ${selectedObject.name || "Object"} exactly in place ${rotationCount} time(s).`);
+    }
+}
+
+//listen for k to delete object
+document.addEventListener("keydown", (event) => {
+    if (event.key.toLowerCase() === "k") {
+        deleteLookedAtObject();
+    }
+});
+
+//function to delete looked at object
+function deleteLookedAtObject() {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2(0, 0); // Center of screen (crosshair)
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(scene.children, true);
+
+    if (intersects.length > 0) {
+        let selectedObject = intersects[0].object;
+
+        // Ignore floor and grid
+        if (selectedObject === floor || selectedObject === gridHelper) {
+            console.log("❌ Can't delete the floor or grid!");
+            return;
+        }
+
+        // 🔹 Find the top-level parent (entire model group)
+        while (selectedObject.parent && selectedObject.parent !== scene) {
+            selectedObject = selectedObject.parent;
+        }
+
+        // 🔍 Find the object's position in `gridData`
+        let objectKey = Object.keys(gridData).find(
+            key => gridData[key].object === selectedObject
+        );
+
+        if (objectKey) {
+            console.log(`🗑 Removing object from JSON at position: ${objectKey}`);
+            delete gridData[objectKey]; // Remove from JSON storage
+        } else {
+            console.warn("⚠️ Object not found in JSON storage.");
+        }
+
+        // 🔄 Remove from scene and dispose of its resources
+        scene.remove(selectedObject);
+        selectedObject.traverse((child) => {
+            if (child.geometry) {
+                child.geometry.dispose();
+            }
+            if (child.material) {
+                if (Array.isArray(child.material)) {
+                    child.material.forEach(mat => mat.dispose());
+                } else {
+                    child.material.dispose();
+                }
+            }
+        });
+
+  console.log(`✅ Deleted Object ID: ${selectedObject.userData.id}`);
+
+    }
+}
+
+// 🌥️ Generate Multiple Clouds and store them in an array
+// Function to create a round cloud
+function createRoundCloud(x, y, z) {
+    const cloud = new THREE.Group(); // Create a group to combine spheres
+    cloud.name = "clouds"; // Name the cloud group
+
+    const cloudMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+
+    // Create 3-5 spheres per cloud for a "puffy" look
+    const numBlobs = Math.floor(Math.random() * 3) + 3; // 3 to 5 spheres per cloud
+
+    for (let i = 0; i < numBlobs; i++) {
+        const radius = Math.random() * 1.2 + 0.8; // Random size (0.8 to 2)
+        const geometry = new THREE.SphereGeometry(radius, 16, 16); // Sphere shape
+        const blob = new THREE.Mesh(geometry, cloudMaterial);
+
+        // Randomly position each sphere around a central point
+        const offsetX = (Math.random() - 0.5) * 3; // Spread left/right
+        const offsetY = (Math.random() - 0.5) * 1.5; // Slight up/down shift
+        const offsetZ = (Math.random() - 0.5) * 3; // Spread front/back
+        blob.position.set(offsetX, offsetY, offsetZ);
+
+        cloud.add(blob); // Add sphere to the cloud group
+    }
+
+    cloud.position.set(x, y, z); // Position the whole cloud
+    scene.add(cloud);
+
+    return cloud; // Return the cloud object so we can track it
+}
+
+// 🌥️ Generate Multiple Clouds and store them in an array
+let clouds = [];
+for (let i = 0; i < 10; i++) {
+    let x = (Math.random() - 0.5) * 50; // Spread clouds out in X
+    let y = Math.random() * 10 + 5;  // Position clouds in the sky (5 to 15 units high)
+    let z = (Math.random() - 0.5) * 50; // Spread clouds out in Z
+    let cloud = createRoundCloud(x, y, z); // Now returning the cloud
+    clouds.push(cloud); // Store cloud in array
+}
+
+// Function to update cloud movement
+function updateClouds() {
+    const cloudSpeed = 0.02; // Adjust speed of cloud movement
+
+    clouds.forEach(cloud => {
+        if (cloud) {
+            cloud.position.x += cloudSpeed; // Move cloud to the right
+
+            // Respawn cloud if it moves too far
+            if (cloud.position.x > 30) { // Adjust this threshold as needed
+                cloud.position.x = -30; // Move cloud back to start
+                cloud.position.z = (Math.random() - 0.5) * 50; // Randomize Z position
+                cloud.position.y = Math.random() * 10 + 5; // Keep it in the sky
+            }
+        }
+    });
+}
+
+// Modify the animation loop
+function animate() {
+    requestAnimationFrame(animate); // Always run the game loop
+
+    if (!paused) { 
+        updatePlayerMovement(); // ✅ Only update when NOT paused
+        updateClouds(); 
+    }
+
+    renderer.render(scene, camera); // ✅ Always render the scene
+}
+
+// Start animation loop
+animate();
+
+// Handle Window Resize
+        window.addEventListener("resize", () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        animate();
+    </script>
+</body>
+</html>
